@@ -35,6 +35,26 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+
+            // Shrink/obfuscate Dart-glue + Java/Kotlin and strip unused resources.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
+        }
+    }
+
+    // Build one APK per ABI instead of a single fat universal APK. Each device
+    // only needs its own ABI, so per-ABI APKs are ~1/4 the size. (Not needed for
+    // `flutter build appbundle`, which Google Play splits automatically.)
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("armeabi-v7a", "arm64-v8a")
+            isUniversalApk = false
         }
     }
 }
