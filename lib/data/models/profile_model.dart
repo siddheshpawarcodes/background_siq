@@ -12,6 +12,7 @@ class ProfileModel extends HiveObject {
     required this.id,
     required this.name,
     this.musicFilePath,
+    this.voiceVolume,
     required this.musicVolume,
     required this.noiseReductionLevel,
     required this.voiceEnhancementEnabled,
@@ -24,6 +25,7 @@ class ProfileModel extends HiveObject {
     required this.modifiedDate,
     this.description,
     this.calibrationVoiceSamplePath,
+    this.coverImagePath,
   });
 
   @HiveField(0)
@@ -58,4 +60,12 @@ class ProfileModel extends HiveObject {
   String? description;
   @HiveField(14)
   String? calibrationVoiceSamplePath;
+  // Field 15 appended for the audio/voice volume control. Backward-compatible:
+  // older records read this as null and fall back to the default in the mapper.
+  @HiveField(15)
+  int? voiceVolume; // 0..100
+  // Field 16 appended for embedded cover art. Backward-compatible: older
+  // records read this as null (no thumbnail).
+  @HiveField(16)
+  String? coverImagePath;
 }

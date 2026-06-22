@@ -15,8 +15,10 @@ abstract class BackgroundProfile with _$BackgroundProfile {
     required String name,
     String? description, // optional, shown in wizard
     String? musicFilePath,
+    String? coverImagePath, // optional cover art embedded in every export
     String? calibrationVoiceSamplePath, // calibration/preview only (design §9 E6)
-    @Default(20) int musicVolume, // 0..100
+    @Default(100) int voiceVolume, // 0..100 — level of the spoken/audio track
+    @Default(20) int musicVolume, // 0..100 — level of the background music
     @Default(NoiseLevel.medium) NoiseLevel noiseReduction,
     @Default(true) bool voiceEnhancementEnabled,
     @Default(DuckingStrength.medium) DuckingStrength ducking,

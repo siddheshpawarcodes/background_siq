@@ -79,8 +79,10 @@ class ProfileWizardController
   void setName(String v) => _update(state.draft.copyWith(name: v));
   void setDescription(String v) => _update(state.draft.copyWith(description: v));
   void setMusic(String? path) => _update(state.draft.copyWith(musicFilePath: path));
+  void setCover(String? path) => _update(state.draft.copyWith(coverImagePath: path));
   void setCalibrationSample(String? path) =>
       _update(state.draft.copyWith(calibrationVoiceSamplePath: path));
+  void setVoiceVolume(int v) => _update(state.draft.copyWith(voiceVolume: v));
   void setVolume(int v) => _update(state.draft.copyWith(musicVolume: v));
   void setNoise(NoiseLevel v) => _update(state.draft.copyWith(noiseReduction: v));
   void setEnhancement(bool v) =>

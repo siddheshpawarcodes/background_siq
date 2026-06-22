@@ -8,6 +8,7 @@ import '../../../core/di/usecase_providers.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/entities/background_profile.dart';
 import '../../../domain/entities/enums.dart';
+import '../../shared/cover_image_card.dart';
 
 /// Profile editor — all profile fields (SRS §11.4).
 ///
@@ -61,6 +62,11 @@ class _ProfileEditorScreenState extends ConsumerState<ProfileEditorScreen> {
     if (path != null) setState(() => _draft = _draft.copyWith(musicFilePath: path));
   }
 
+  Future<void> _pickCover() async {
+    final path = await ref.read(filePickServiceProvider).pickImagePath();
+    if (path != null) setState(() => _draft = _draft.copyWith(coverImagePath: path));
+  }
+
   Future<void> _save() async {
     setState(() => _saving = true);
     final result = await ref
@@ -100,9 +106,25 @@ class _ProfileEditorScreenState extends ConsumerState<ProfileEditorScreen> {
           ),
           const SizedBox(height: Spacing.lg),
           _musicPicker(),
+          const SizedBox(height: Spacing.md),
+          CoverImageCard(
+            path: _draft.coverImagePath,
+            onPick: _pickCover,
+            onClear: () => setState(() => _draft = _draft.copyWith(coverImagePath: null)),
+          ),
           const SizedBox(height: Spacing.lg),
           _slider(
-            label: 'Music volume',
+            label: 'Audio volume',
+            value: _draft.voiceVolume.toDouble(),
+            min: 0,
+            max: 100,
+            divisions: 100,
+            display: '${_draft.voiceVolume}%',
+            onChanged: (v) => setState(() => _draft = _draft.copyWith(voiceVolume: v.round())),
+          ),
+          const SizedBox(height: Spacing.md),
+          _slider(
+            label: 'Background music volume',
             value: _draft.musicVolume.toDouble(),
             min: 0,
             max: 100,

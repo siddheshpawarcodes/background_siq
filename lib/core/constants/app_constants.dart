@@ -7,6 +7,11 @@ class AppConstants {
   static const String appName = 'Window Background Music';
   static const String appShortName = 'WBM';
 
+  /// Folder that holds every processed output file. Created on first use and
+  /// reused thereafter; when a user export folder is chosen, this is nested
+  /// inside it so all files still land in one "Srotas Audio" folder.
+  static const String outputFolderName = 'Srotas Audio';
+
   /// Suffix appended to every processed output file (before the extension).
   /// e.g. `meeting.mp3` -> `meeting_WBM.mp3`.
   static const String outputSuffix = '_WBM';
@@ -21,8 +26,31 @@ class AppConstants {
     'ogg',
   };
 
+  /// Image extensions accepted for a profile's embedded cover art (thumbnail).
+  /// Restricted to JPEG/PNG so the picture can be copied losslessly into every
+  /// supported container without re-encoding.
+  static const Set<String> supportedCoverImageExtensions = {
+    'jpg',
+    'jpeg',
+    'png',
+  };
+
+  /// Output containers that can carry embedded cover art (an `attached_pic`
+  /// stream). WAV and OGG are intentionally excluded — they have no widely
+  /// supported cover-art slot — so exports in those formats simply skip the
+  /// thumbnail instead of failing.
+  static const Set<String> coverArtCapableFormats = {
+    'mp3',
+    'm4a',
+    'aac',
+    'flac',
+  };
+
   /// Default background-music volume (percent) for new profiles.
   static const int defaultMusicVolume = 20;
+
+  /// Default audio (spoken/voice track) volume (percent) for new profiles.
+  static const int defaultVoiceVolume = 100;
 
   /// Preview duration rendered for the 15-second sample.
   static const Duration previewDuration = Duration(seconds: 15);

@@ -91,6 +91,7 @@ class FfmpegAudioProcessor implements AudioProcessorPort {
     final command = _builder.build(
       voicePath: request.source.path,
       musicPath: request.profile.musicFilePath,
+      coverPath: request.profile.coverImagePath,
       outputPath: request.outputPath,
       profile: request.profile,
       totalDuration: totalDuration,

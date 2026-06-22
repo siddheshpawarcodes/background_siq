@@ -16,6 +16,16 @@ class FilePickService {
     return path;
   }
 
+  /// Picks a JPEG/PNG image to embed as a profile's cover art (thumbnail).
+  /// Returns null when the user cancels.
+  Future<String?> pickImagePath() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: AppConstants.supportedCoverImageExtensions.toList(),
+    );
+    return result?.files.singleOrNull?.path;
+  }
+
   /// Multi-select for batch mode (SRS §15). Returns the chosen file paths.
   Future<List<String>> pickAudioPaths() async {
     final result = await FilePicker.platform.pickFiles(

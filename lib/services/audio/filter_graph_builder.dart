@@ -27,12 +27,19 @@ class FilterGraphBuilder {
   FfmpegCommand build({
     required String voicePath,
     String? musicPath,
+    String? coverPath,
     required String outputPath,
     required BackgroundProfile profile,
     required Duration totalDuration,
     Duration? trim,
   }) {
     final hasMusic = musicPath != null && musicPath.isNotEmpty;
+    final outputExt = p.extension(outputPath).replaceFirst('.', '').toLowerCase();
+    // Cover art is only embedded when one is set AND the output container can
+    // carry an attached picture (WAV/OGG cannot), so those exports stay valid.
+    final hasCover = coverPath != null &&
+        coverPath.isNotEmpty &&
+        AppConstants.coverArtCapableFormats.contains(outputExt);
     final effectiveDuration = trim ?? totalDuration;
 
     final voiceFilters = _voiceFilters(profile);
@@ -68,19 +75,34 @@ class FilterGraphBuilder {
 
     final filterComplex = parts.join(';');
 
+    // Cover image is appended after the audio inputs, so its stream index is 2
+    // when music is present (voice=0, music=1, cover=2) and 1 otherwise.
+    final coverIndex = hasMusic ? 2 : 1;
+
     final args = <String>[
       '-y',
       '-i', voicePath,
       if (hasMusic) ...['-stream_loop', '-1', '-i', musicPath],
+      if (hasCover) ...['-i', coverPath],
       '-filter_complex', filterComplex,
       '-map', mapLabel,
+      if (hasCover) ...['-map', '$coverIndex:v'],
       if (trim != null) ...['-t', _seconds(trim)],
       ..._encoderArgsForExtension(outputPath),
+      if (hasCover) ..._coverArgs(outputExt),
       outputPath,
     ];
 
     return FfmpegCommand(arguments: args, filterComplex: filterComplex);
   }
+
+  /// Marks the mapped image stream as cover art (`attached_pic`) and copies it
+  /// through losslessly. MP3 needs ID3v2.3 for the artwork to be widely read.
+  List<String> _coverArgs(String outputExt) => [
+        '-c:v', 'copy',
+        '-disposition:v:0', 'attached_pic',
+        if (outputExt == 'mp3') ...['-id3v2_version', '3'],
+      ];
 
   /// Steps 2 & 3: noise reduction + voice enhancement.
   List<String> _voiceFilters(BackgroundProfile profile) {
@@ -106,6 +128,12 @@ class FilterGraphBuilder {
         ..add('equalizer=f=200:t=q:w=1:g=-2') // tame low-mid mud
         ..add('equalizer=f=3000:t=q:w=1.5:g=4') // presence/intelligibility
         ..add('acompressor=threshold=-18dB:ratio=3:attack=5:release=60:makeup=2');
+    }
+
+    // Final gain on the voice/audio track. Skipped at 100% so the default keeps
+    // the original level (and the no-filter `anull` fast path) untouched.
+    if (profile.voiceVolume != 100) {
+      filters.add('volume=${(profile.voiceVolume / 100).toStringAsFixed(2)}');
     }
     return filters;
   }

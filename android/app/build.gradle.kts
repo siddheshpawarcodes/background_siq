@@ -36,9 +36,15 @@ android {
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
 
-            // Shrink/obfuscate Dart-glue + Java/Kotlin and strip unused resources.
-            isMinifyEnabled = true
-            isShrinkResources = true
+            // R8 was stripping plugin classes (notably the `jni` plugin used by
+            // path_provider_android), which broke GeneratedPluginRegistrant and
+            // crashed the app at startup with "No JNI instance is available".
+            // The APK size is dominated by ffmpeg native libs, so shrinking the
+            // small amount of Dart-glue bytecode isn't worth the breakage.
+            // To re-enable, flip these back on and ensure proguard-rules.pro keeps
+            // every plugin's Java/Kotlin entry classes.
+            isMinifyEnabled = false
+            isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",

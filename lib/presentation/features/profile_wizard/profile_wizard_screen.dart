@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/di/usecase_providers.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../shared/audio_file_card.dart';
+import '../../shared/cover_image_card.dart';
 import 'profile_wizard_controller.dart';
 import 'steps/calibrate_step.dart';
 
@@ -68,7 +69,8 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
       ),
       body: switch (state.step) {
         WizardStep.info => _infoStep(),
-        WizardStep.music => _musicStep(state.draft.musicFilePath),
+        WizardStep.music =>
+          _musicStep(state.draft.musicFilePath, state.draft.coverImagePath),
         WizardStep.sample => _sampleStep(state.draft.calibrationVoiceSamplePath),
         _ => CalibrateStep(profileId: widget.profileId),
       },
@@ -100,9 +102,10 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
         ],
       );
 
-  Widget _musicStep(String? path) => Padding(
+  Widget _musicStep(String? path, String? coverPath) => Padding(
         padding: const EdgeInsets.all(Spacing.md),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             AudioFileCard(
               icon: Icons.music_note,
@@ -114,6 +117,22 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
                 if (picked != null) _ctrl.setMusic(picked);
               },
               onClear: () => _ctrl.setMusic(null),
+            ),
+            const SizedBox(height: Spacing.lg),
+            Text('Cover art', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: Spacing.xs),
+            const Text(
+              'An optional thumbnail embedded into every exported file, shown in '
+              'music players and file managers.',
+            ),
+            const SizedBox(height: Spacing.sm),
+            CoverImageCard(
+              path: coverPath,
+              onPick: () async {
+                final picked = await ref.read(filePickServiceProvider).pickImagePath();
+                if (picked != null) _ctrl.setCover(picked);
+              },
+              onClear: () => _ctrl.setCover(null),
             ),
           ],
         ),

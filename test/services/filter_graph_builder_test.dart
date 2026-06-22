@@ -9,6 +9,7 @@ void main() {
 
   BackgroundProfile profile({
     int volume = 20,
+    int voiceVolume = 100,
     NoiseLevel noise = NoiseLevel.medium,
     bool enhance = true,
     DuckingStrength ducking = DuckingStrength.medium,
@@ -20,6 +21,7 @@ void main() {
       BackgroundProfile(
         id: 'x',
         name: 'X',
+        voiceVolume: voiceVolume,
         musicVolume: volume,
         noiseReduction: noise,
         voiceEnhancementEnabled: enhance,
@@ -82,6 +84,31 @@ void main() {
     expect(cmd.filterComplex, contains('[0:a]anull[mixed]'));
   });
 
+  test('applies a volume filter to the voice chain below 100%', () {
+    final cmd = builder.build(
+      voicePath: 'voice.wav',
+      outputPath: 'out.wav',
+      profile: profile(
+          voiceVolume: 60,
+          noise: NoiseLevel.off,
+          enhance: false,
+          normalize: false,
+          ducking: DuckingStrength.off),
+      totalDuration: const Duration(seconds: 30),
+    );
+    expect(cmd.filterComplex, contains('[0:a]volume=0.60[mixed]'));
+  });
+
+  test('voice chain has no volume filter at 100%', () {
+    final cmd = builder.build(
+      voicePath: 'voice.wav',
+      outputPath: 'out.wav',
+      profile: profile(ducking: DuckingStrength.off),
+      totalDuration: const Duration(seconds: 30),
+    );
+    expect(cmd.filterComplex, isNot(contains('[0:a]volume=')));
+  });
+
   test('fade-out start is computed from duration', () {
     final cmd = builder.build(
       voicePath: 'voice.wav',
@@ -124,5 +151,65 @@ void main() {
       totalDuration: const Duration(seconds: 300),
       trim: const Duration(seconds: 15));
     expect(cmd.arguments, containsAllInOrder(['-t', '15.00']));
+  });
+
+  group('cover art', () {
+    test('embeds cover as an attached_pic for a capable format (no music)', () {
+      final cmd = builder.build(
+        voicePath: 'voice.wav',
+        coverPath: 'cover.jpg',
+        outputPath: 'out.mp3',
+        profile: profile(ducking: DuckingStrength.off),
+        totalDuration: const Duration(seconds: 60),
+      );
+      // Voice is input 0, so the cover is input 1 and mapped as 1:v.
+      expect(cmd.arguments, containsAllInOrder(['-i', 'cover.jpg']));
+      expect(cmd.arguments, containsAllInOrder(['-map', '1:v']));
+      expect(cmd.arguments, containsAllInOrder(['-c:v', 'copy']));
+      expect(cmd.arguments, containsAllInOrder(['-disposition:v:0', 'attached_pic']));
+      // MP3 needs ID3v2.3 for the artwork to be widely read.
+      expect(cmd.arguments, containsAllInOrder(['-id3v2_version', '3']));
+    });
+
+    test('cover stream index accounts for the music input', () {
+      final cmd = builder.build(
+        voicePath: 'voice.wav',
+        musicPath: 'music.mp3',
+        coverPath: 'cover.png',
+        outputPath: 'out.m4a',
+        profile: profile(ducking: DuckingStrength.off),
+        totalDuration: const Duration(seconds: 60),
+      );
+      // voice=0, music=1, cover=2.
+      expect(cmd.arguments, containsAllInOrder(['-i', 'music.mp3']));
+      expect(cmd.arguments, containsAllInOrder(['-i', 'cover.png']));
+      expect(cmd.arguments, containsAllInOrder(['-map', '2:v']));
+      expect(cmd.arguments, containsAllInOrder(['-disposition:v:0', 'attached_pic']));
+      // ID3 versioning is mp3-only.
+      expect(cmd.arguments, isNot(contains('-id3v2_version')));
+    });
+
+    test('skips cover art for formats that cannot carry it (wav)', () {
+      final cmd = builder.build(
+        voicePath: 'voice.wav',
+        coverPath: 'cover.jpg',
+        outputPath: 'out.wav',
+        profile: profile(ducking: DuckingStrength.off),
+        totalDuration: const Duration(seconds: 60),
+      );
+      expect(cmd.arguments, isNot(contains('cover.jpg')));
+      expect(cmd.arguments, isNot(contains('attached_pic')));
+    });
+
+    test('no cover args when none is set', () {
+      final cmd = builder.build(
+        voicePath: 'voice.wav',
+        outputPath: 'out.mp3',
+        profile: profile(ducking: DuckingStrength.off),
+        totalDuration: const Duration(seconds: 60),
+      );
+      expect(cmd.arguments, isNot(contains('attached_pic')));
+      expect(cmd.arguments, isNot(contains('-disposition:v:0')));
+    });
   });
 }

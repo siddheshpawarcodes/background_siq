@@ -1,3 +1,4 @@
+import '../../core/constants/app_constants.dart';
 import '../../domain/entities/background_profile.dart';
 import '../../domain/entities/enums.dart';
 import '../models/profile_model.dart';
@@ -11,6 +12,8 @@ extension ProfileModelMapper on ProfileModel {
         description: description,
         calibrationVoiceSamplePath: calibrationVoiceSamplePath,
         musicFilePath: musicFilePath,
+        coverImagePath: coverImagePath,
+        voiceVolume: voiceVolume ?? AppConstants.defaultVoiceVolume,
         musicVolume: musicVolume,
         noiseReduction: NoiseLevel.values.fromIndex(noiseReductionLevel),
         voiceEnhancementEnabled: voiceEnhancementEnabled,
@@ -31,6 +34,8 @@ extension BackgroundProfileMapper on BackgroundProfile {
         description: description,
         calibrationVoiceSamplePath: calibrationVoiceSamplePath,
         musicFilePath: musicFilePath,
+        coverImagePath: coverImagePath,
+        voiceVolume: voiceVolume,
         musicVolume: musicVolume,
         noiseReductionLevel: noiseReduction.index,
         voiceEnhancementEnabled: voiceEnhancementEnabled,
