@@ -1,13 +1,24 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Dataset Batch publishes output into the public Music/ folder via
-         MediaStore. Android 10+ needs no permission; only Android 9 and below
-         require the legacy write grant (scoped to API ≤28). -->
+    <!-- Two output paths need storage access:
+         • Regular exports land in a custom "Srotas Audio" folder, which needs
+           all-files access (MANAGE_EXTERNAL_STORAGE) to create a top-level
+           folder on Android 11+ (see file_system_service.dart).
+         • Dataset Batch publishes into the public Music/ folder via MediaStore,
+           which needs no permission on Android 10+ and only the legacy write
+           grant on Android 9 and below.
+         READ covers shared-storage reads up to Android 12; legacy WRITE is
+         scoped to API ≤28. -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-        android:maxSdkVersion="28" />
+        android:maxSdkVersion="28"/>
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/>
+
     <application
         android:label="EchoBug"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:requestLegacyExternalStorage="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"

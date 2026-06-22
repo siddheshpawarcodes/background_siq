@@ -16,6 +16,16 @@ class FilePickService {
     return path;
   }
 
+  /// Picks a JPEG/PNG image to embed as a profile's cover art (thumbnail).
+  /// Returns null when the user cancels.
+  Future<String?> pickImagePath() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: AppConstants.supportedCoverImageExtensions.toList(),
+    );
+    return result?.files.singleOrNull?.path;
+  }
+
   /// Multi-select for batch mode (SRS §15). Returns the chosen file paths.
   Future<List<String>> pickAudioPaths() async {
     final result = await FilePicker.platform.pickFiles(
@@ -25,17 +35,6 @@ class FilePickService {
     );
     if (result == null) return const [];
     return result.files.map((f) => f.path).whereType<String>().toList();
-  }
-
-  /// Picks an image to embed as cover art (thumbnail). Restricted to the
-  /// raster formats that embed cleanly in audio containers. Returns null when
-  /// the user cancels.
-  Future<String?> pickImagePath() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: const ['jpg', 'jpeg', 'png'],
-    );
-    return result?.files.singleOrNull?.path;
   }
 
   /// Prompts for a directory (used for the default export folder). Returns

@@ -9,6 +9,7 @@ void main() {
 
   BackgroundProfile profile({
     int volume = 20,
+    int voiceVolume = 100,
     NoiseLevel noise = NoiseLevel.medium,
     bool enhance = true,
     DuckingStrength ducking = DuckingStrength.medium,
@@ -20,6 +21,7 @@ void main() {
       BackgroundProfile(
         id: 'x',
         name: 'X',
+        voiceVolume: voiceVolume,
         musicVolume: volume,
         noiseReduction: noise,
         voiceEnhancementEnabled: enhance,
@@ -80,6 +82,31 @@ void main() {
       totalDuration: const Duration(seconds: 30),
     );
     expect(cmd.filterComplex, contains('[0:a]anull[mixed]'));
+  });
+
+  test('applies a volume filter to the voice chain below 100%', () {
+    final cmd = builder.build(
+      voicePath: 'voice.wav',
+      outputPath: 'out.wav',
+      profile: profile(
+          voiceVolume: 60,
+          noise: NoiseLevel.off,
+          enhance: false,
+          normalize: false,
+          ducking: DuckingStrength.off),
+      totalDuration: const Duration(seconds: 30),
+    );
+    expect(cmd.filterComplex, contains('[0:a]volume=0.60[mixed]'));
+  });
+
+  test('voice chain has no volume filter at 100%', () {
+    final cmd = builder.build(
+      voicePath: 'voice.wav',
+      outputPath: 'out.wav',
+      profile: profile(ducking: DuckingStrength.off),
+      totalDuration: const Duration(seconds: 30),
+    );
+    expect(cmd.filterComplex, isNot(contains('[0:a]volume=')));
   });
 
   test('fade-out start is computed from duration', () {

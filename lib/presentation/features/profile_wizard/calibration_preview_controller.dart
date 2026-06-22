@@ -86,9 +86,22 @@ class CalibrationPreviewController extends AutoDisposeNotifier<PreviewState> {
       await _player.pause();
       state = state.copyWith(playing: false);
     } else {
-      await _player.seek(Duration.zero);
+      // Restart from the top only when playback has already finished; otherwise
+      // resume from the current seek position.
+      if (_player.processingState == ProcessingState.completed) {
+        await _player.seek(Duration.zero);
+      }
       await _player.play();
       state = state.copyWith(playing: true);
     }
   }
+
+  /// Live playback position, for the seek bar's real-time tracking.
+  Stream<Duration> get positionStream => _player.positionStream;
+
+  /// Total length of the rendered preview (null until loaded).
+  Stream<Duration?> get durationStream => _player.durationStream;
+
+  /// Jumps playback to [position] (driven by the seek bar).
+  Future<void> seek(Duration position) => _player.seek(position);
 }

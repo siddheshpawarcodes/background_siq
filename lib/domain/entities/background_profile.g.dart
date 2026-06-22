@@ -14,6 +14,7 @@ _BackgroundProfile _$BackgroundProfileFromJson(Map<String, dynamic> json) =>
       musicFilePath: json['musicFilePath'] as String?,
       coverImagePath: json['coverImagePath'] as String?,
       calibrationVoiceSamplePath: json['calibrationVoiceSamplePath'] as String?,
+      voiceVolume: (json['voiceVolume'] as num?)?.toInt() ?? 100,
       musicVolume: (json['musicVolume'] as num?)?.toInt() ?? 20,
       noiseReduction:
           $enumDecodeNullable(_$NoiseLevelEnumMap, json['noiseReduction']) ??
@@ -40,6 +41,7 @@ Map<String, dynamic> _$BackgroundProfileToJson(_BackgroundProfile instance) =>
       'musicFilePath': instance.musicFilePath,
       'coverImagePath': instance.coverImagePath,
       'calibrationVoiceSamplePath': instance.calibrationVoiceSamplePath,
+      'voiceVolume': instance.voiceVolume,
       'musicVolume': instance.musicVolume,
       'noiseReduction': _$NoiseLevelEnumMap[instance.noiseReduction]!,
       'voiceEnhancementEnabled': instance.voiceEnhancementEnabled,

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/errors/failures.dart';
@@ -11,9 +12,11 @@ import '../../domain/ports/file_system_port.dart';
 
 /// Default [FileSystemPort] implementation (SRS §3.1, §13.3).
 ///
-/// On mobile, scoped storage usually prevents writing back to the picked
-/// file's original folder, so the app output folder is the safe default; a
-/// user-chosen [preferredDir] is honored only when actually writable.
+/// Processed files are written to a user-visible "Srotas Audio" folder on the
+/// device's shared storage (Android), so they show up in a file manager rather
+/// than app-private storage. A user-chosen [preferredDir] is honored when
+/// writable; if shared storage is unavailable or the storage permission is
+/// denied, it falls back to the app documents folder so export never fails.
 class FileSystemService implements FileSystemPort {
   const FileSystemService();
 
@@ -27,18 +30,62 @@ class FileSystemService implements FileSystemPort {
       final ext = source.ext.isNotEmpty ? source.ext : 'mp3';
       final fileName = '$base${AppConstants.outputSuffix}.$ext';
 
-      Directory dir;
-      if (preferredDir != null && await _isWritable(preferredDir)) {
-        dir = Directory(preferredDir);
-      } else {
-        final docs = await getApplicationDocumentsDirectory();
-        dir = Directory(p.join(docs.path, AppConstants.appShortName));
-        await dir.create(recursive: true);
-      }
+      // Reuse the "Srotas Audio" folder if it already exists, create it
+      // (recursively) if not.
+      final dir = await _outputDir(preferredDir);
+      await dir.create(recursive: true);
 
       return Result.ok(_uniquify(p.join(dir.path, fileName)));
     } catch (e) {
       return Result.err(ExportFailure(debugDetail: e.toString()));
+    }
+  }
+
+  /// Resolves the parent "Srotas Audio" folder, preferring a user-chosen
+  /// export folder, then device shared storage, then app-private storage.
+  Future<Directory> _outputDir(String? preferredDir) async {
+    // 1. Honor a writable user-chosen export folder.
+    if (preferredDir != null && await _isWritable(preferredDir)) {
+      return Directory(p.join(preferredDir, AppConstants.outputFolderName));
+    }
+
+    // 2. Android: a visible folder on the device's shared (local) storage.
+    if (Platform.isAndroid && await _ensureStoragePermission()) {
+      final root = await _sharedStorageRoot();
+      if (root != null) {
+        return Directory(p.join(root, AppConstants.outputFolderName));
+      }
+    }
+
+    // 3. Fallback so export never fails (iOS/desktop, or permission denied).
+    final docs = await getApplicationDocumentsDirectory();
+    return Directory(p.join(docs.path, AppConstants.outputFolderName));
+  }
+
+  /// Root of the device's shared storage, e.g. `/storage/emulated/0`, derived
+  /// from the app-specific external dir (`.../Android/data/<pkg>/files`).
+  Future<String?> _sharedStorageRoot() async {
+    try {
+      final ext = await getExternalStorageDirectory();
+      if (ext == null) return null;
+      final idx = ext.path.indexOf('/Android/');
+      return idx == -1 ? null : ext.path.substring(0, idx);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Requests storage access. Android 11+ needs All-files access to write a
+  /// custom top-level folder; older versions use the legacy storage grant.
+  Future<bool> _ensureStoragePermission() async {
+    try {
+      if (await Permission.manageExternalStorage.isGranted) return true;
+      if ((await Permission.manageExternalStorage.request()).isGranted) {
+        return true;
+      }
+      return (await Permission.storage.request()).isGranted;
+    } catch (_) {
+      return false;
     }
   }
 

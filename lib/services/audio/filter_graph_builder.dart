@@ -144,6 +144,12 @@ class FilterGraphBuilder {
         ..add('equalizer=f=3000:t=q:w=1.5:g=4') // presence/intelligibility
         ..add('acompressor=threshold=-18dB:ratio=3:attack=5:release=60:makeup=2');
     }
+
+    // Final gain on the voice/audio track. Skipped at 100% so the default keeps
+    // the original level (and the no-filter `anull` fast path) untouched.
+    if (profile.voiceVolume != 100) {
+      filters.add('volume=${(profile.voiceVolume / 100).toStringAsFixed(2)}');
+    }
     return filters;
   }
 

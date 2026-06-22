@@ -28,7 +28,18 @@ class CalibrateStep extends ConsumerWidget {
         const Divider(height: Spacing.xl),
         _sliderRow(
           context,
-          label: 'Music volume',
+          label: 'Audio volume',
+          display: '${draft.voiceVolume}%',
+          value: draft.voiceVolume.toDouble(),
+          min: 0,
+          max: 100,
+          divisions: 100,
+          onChanged: (v) => ctrl.setVoiceVolume(v.round()),
+        ),
+        const SizedBox(height: Spacing.md),
+        _sliderRow(
+          context,
+          label: 'Background music volume',
           display: '${draft.musicVolume}%',
           value: draft.musicVolume.toDouble(),
           min: 0,
@@ -165,11 +176,18 @@ class CalibrateStep extends ConsumerWidget {
                     onPressed: () => ref
                         .read(calibrationPreviewControllerProvider.notifier)
                         .togglePlay(),
-                    icon: Icon(preview.playing ? Icons.pause : Icons.replay),
+                    icon: Icon(preview.playing ? Icons.pause : Icons.play_arrow),
                   ),
                 ],
               ],
             ),
+            if (preview.hasPreview && !preview.generating) ...[
+              const SizedBox(height: Spacing.xs),
+              _PreviewSeekBar(
+                controller:
+                    ref.read(calibrationPreviewControllerProvider.notifier),
+              ),
+            ],
           ],
         ),
       ),
@@ -178,6 +196,7 @@ class CalibrateStep extends ConsumerWidget {
 
   Widget _estimatedOutput(BuildContext context, BackgroundProfile draft) {
     final lines = [
+      'Audio: ${draft.voiceVolume}%',
       'Music: ${draft.musicFilePath == null ? 'none' : '${draft.musicVolume}%'}',
       'Noise: ${draft.noiseReduction.label}',
       'Ducking: ${draft.ducking.label}',
@@ -237,5 +256,89 @@ class CalibrateStep extends ConsumerWidget {
         ),
       ],
     );
+  }
+}
+
+/// Real-time scrub bar for the live preview. Tracks the player's position via
+/// [CalibrationPreviewController.positionStream] and lets the user seek. Local
+/// [_dragValue] holds the thumb while dragging so position ticks don't fight the
+/// gesture; it's committed on release.
+class _PreviewSeekBar extends StatefulWidget {
+  const _PreviewSeekBar({required this.controller});
+
+  final CalibrationPreviewController controller;
+
+  @override
+  State<_PreviewSeekBar> createState() => _PreviewSeekBarState();
+}
+
+class _PreviewSeekBarState extends State<_PreviewSeekBar> {
+  double? _dragValue;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<Duration?>(
+      stream: widget.controller.durationStream,
+      builder: (context, durSnap) {
+        final duration = durSnap.data ?? Duration.zero;
+        final maxMs = duration.inMilliseconds.toDouble();
+        return StreamBuilder<Duration>(
+          stream: widget.controller.positionStream,
+          builder: (context, posSnap) {
+            final position = posSnap.data ?? Duration.zero;
+            final posMs = position.inMilliseconds.toDouble();
+            final value = (_dragValue ?? posMs).clamp(0.0, maxMs <= 0 ? 1.0 : maxMs);
+            final shown = _dragValue == null
+                ? position
+                : Duration(milliseconds: _dragValue!.round());
+            return Column(
+              children: [
+                SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    trackHeight: 2,
+                    thumbShape:
+                        const RoundSliderThumbShape(enabledThumbRadius: 6),
+                    overlayShape:
+                        const RoundSliderOverlayShape(overlayRadius: 14),
+                  ),
+                  child: Slider(
+                    value: value,
+                    max: maxMs <= 0 ? 1.0 : maxMs,
+                    onChanged: maxMs <= 0
+                        ? null
+                        : (v) => setState(() => _dragValue = v),
+                    onChangeEnd: maxMs <= 0
+                        ? null
+                        : (v) async {
+                            await widget.controller
+                                .seek(Duration(milliseconds: v.round()));
+                            if (mounted) setState(() => _dragValue = null);
+                          },
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(_formatDuration(shown),
+                          style: Theme.of(context).textTheme.bodySmall),
+                      Text(_formatDuration(duration),
+                          style: Theme.of(context).textTheme.bodySmall),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  String _formatDuration(Duration d) {
+    final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
   }
 }
