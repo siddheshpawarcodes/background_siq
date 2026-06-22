@@ -1,5 +1,5 @@
-import 'package:background_siq/domain/entities/background_profile.dart';
-import 'package:background_siq/domain/entities/enums.dart';
+import 'package:echobug/domain/entities/background_profile.dart';
+import 'package:echobug/domain/entities/enums.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

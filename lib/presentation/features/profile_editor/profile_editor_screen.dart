@@ -1,8 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
+import '../../../core/constants/app_constants.dart';
 import '../../../core/di/repository_providers.dart';
 import '../../../core/di/usecase_providers.dart';
 import '../../../core/theme/app_theme.dart';
@@ -61,6 +64,11 @@ class _ProfileEditorScreenState extends ConsumerState<ProfileEditorScreen> {
     if (path != null) setState(() => _draft = _draft.copyWith(musicFilePath: path));
   }
 
+  Future<void> _pickCover() async {
+    final path = await ref.read(filePickServiceProvider).pickImagePath();
+    if (path != null) setState(() => _draft = _draft.copyWith(coverImagePath: path));
+  }
+
   Future<void> _save() async {
     setState(() => _saving = true);
     final result = await ref
@@ -100,6 +108,8 @@ class _ProfileEditorScreenState extends ConsumerState<ProfileEditorScreen> {
           ),
           const SizedBox(height: Spacing.lg),
           _musicPicker(),
+          const SizedBox(height: Spacing.lg),
+          _coverPicker(),
           const SizedBox(height: Spacing.lg),
           _slider(
             label: 'Music volume',
@@ -209,6 +219,62 @@ class _ProfileEditorScreenState extends ConsumerState<ProfileEditorScreen> {
               ),
         onTap: _pickMusic,
       ),
+    );
+  }
+
+  Widget _coverPicker() {
+    final path = _draft.coverImagePath;
+    final exists = path != null && File(path).existsSync();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Card(
+          child: ListTile(
+            leading: exists
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: Image.file(File(path),
+                        width: 40, height: 40, fit: BoxFit.cover),
+                  )
+                : const Icon(Icons.image_outlined),
+            title: Text(path == null ? 'No cover image (thumbnail)' : p.basename(path),
+                maxLines: 1, overflow: TextOverflow.ellipsis),
+            subtitle: Text(path == null
+                ? 'Tap to choose a JPG or PNG'
+                : (exists ? 'Tap to change' : 'File missing — tap to re-select')),
+            trailing: path == null
+                ? null
+                : IconButton(
+                    icon: const Icon(Icons.clear),
+                    onPressed: () =>
+                        setState(() => _draft = _draft.copyWith(coverImagePath: null)),
+                  ),
+            onTap: _pickCover,
+          ),
+        ),
+        if (path != null)
+          Padding(
+            padding: const EdgeInsets.only(top: Spacing.sm, left: Spacing.sm),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.info_outline,
+                    size: 16, color: Theme.of(context).colorScheme.outline),
+                const SizedBox(width: Spacing.sm),
+                Expanded(
+                  child: Text(
+                    'The thumbnail is embedded only when exporting to '
+                    '${AppConstants.coverArtCapableLabel}. WAV and OGG files '
+                    "can't store a cover image, so it will be skipped for those.",
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 

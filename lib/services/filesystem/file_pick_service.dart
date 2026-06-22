@@ -27,6 +27,17 @@ class FilePickService {
     return result.files.map((f) => f.path).whereType<String>().toList();
   }
 
+  /// Picks an image to embed as cover art (thumbnail). Restricted to the
+  /// raster formats that embed cleanly in audio containers. Returns null when
+  /// the user cancels.
+  Future<String?> pickImagePath() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['jpg', 'jpeg', 'png'],
+    );
+    return result?.files.singleOrNull?.path;
+  }
+
   /// Prompts for a directory (used for the default export folder). Returns
   /// null when the user cancels or the platform has no directory picker.
   Future<String?> pickDirectory() => FilePicker.platform.getDirectoryPath();

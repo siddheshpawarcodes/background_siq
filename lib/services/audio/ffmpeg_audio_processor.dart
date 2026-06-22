@@ -91,6 +91,9 @@ class FfmpegAudioProcessor implements AudioProcessorPort {
     final command = _builder.build(
       voicePath: request.source.path,
       musicPath: request.profile.musicFilePath,
+      // Embed cover art on full renders only; previews (trimmed) skip it to
+      // stay fast and avoid touching the image for a throwaway sample.
+      coverImagePath: request.trim == null ? request.profile.coverImagePath : null,
       outputPath: request.outputPath,
       profile: request.profile,
       totalDuration: totalDuration,

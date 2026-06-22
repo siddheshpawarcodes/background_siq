@@ -1,12 +1,12 @@
 // On-device hardening (SRS §NFR-2, P9): long-file performance + cancellation.
 import 'dart:async';
 
-import 'package:background_siq/core/errors/failures.dart';
-import 'package:background_siq/domain/entities/audio_file_ref.dart';
-import 'package:background_siq/domain/entities/background_profile.dart';
-import 'package:background_siq/domain/entities/enums.dart';
-import 'package:background_siq/domain/entities/process_request.dart';
-import 'package:background_siq/services/audio/ffmpeg_audio_processor.dart';
+import 'package:echobug/core/errors/failures.dart';
+import 'package:echobug/domain/entities/audio_file_ref.dart';
+import 'package:echobug/domain/entities/background_profile.dart';
+import 'package:echobug/domain/entities/enums.dart';
+import 'package:echobug/domain/entities/process_request.dart';
+import 'package:echobug/services/audio/ffmpeg_audio_processor.dart';
 import 'package:ffmpeg_kit_flutter_new/ffmpeg_kit.dart';
 import 'package:ffmpeg_kit_flutter_new/return_code.dart';
 import 'package:flutter/foundation.dart';
@@ -50,7 +50,7 @@ void main() {
 
   testWidgets('processes a long (3 min) file without crashing', (tester) async {
     final voice = await generateVoice('long.wav', 180);
-    final out = p.join(dirPath, 'long_WBM.mp3');
+    final out = p.join(dirPath, 'long_EchoBug.mp3');
     final request = ProcessRequest(
       jobId: 'perf', source: AudioFileRef(path: voice, name: 'long.wav', ext: 'wav'),
       profile: profile(), outputPath: out);
@@ -72,7 +72,7 @@ void main() {
 
   testWidgets('cancellation stops a running render', (tester) async {
     final voice = await generateVoice('cancel.wav', 120);
-    final out = p.join(dirPath, 'cancel_WBM.mp3');
+    final out = p.join(dirPath, 'cancel_EchoBug.mp3');
     final request = ProcessRequest(
       jobId: 'cancel-job', source: AudioFileRef(path: voice, name: 'cancel.wav', ext: 'wav'),
       profile: profile(), outputPath: out);

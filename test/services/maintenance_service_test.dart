@@ -1,12 +1,13 @@
 import 'dart:io';
 
-import 'package:background_siq/data/datasources/app_boxes.dart';
-import 'package:background_siq/data/models/history_model.dart';
-import 'package:background_siq/data/models/profile_model.dart';
-import 'package:background_siq/data/models/recent_file_model.dart';
-import 'package:background_siq/data/models/settings_model.dart';
-import 'package:background_siq/hive_registrar.g.dart';
-import 'package:background_siq/services/maintenance/maintenance_service.dart';
+import 'package:echobug/data/datasources/app_boxes.dart';
+import 'package:echobug/data/models/history_model.dart';
+import 'package:echobug/data/models/profile_model.dart';
+import 'package:echobug/data/models/recent_file_model.dart';
+import 'package:echobug/data/models/settings_model.dart';
+import 'package:echobug/data/models/user_model.dart';
+import 'package:echobug/hive_registrar.g.dart';
+import 'package:echobug/services/maintenance/maintenance_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce/hive.dart';
 
@@ -15,7 +16,7 @@ void main() {
   late AppBoxes boxes;
 
   setUp(() async {
-    tempDir = await Directory.systemTemp.createTemp('wbm_maint_');
+    tempDir = await Directory.systemTemp.createTemp('echobug_maint_');
     Hive.init(tempDir.path);
     if (!Hive.isAdapterRegistered(0)) Hive.registerAdapters();
     boxes = AppBoxes(
@@ -24,6 +25,7 @@ void main() {
       history: await Hive.openBox<HistoryModel>('m_history'),
       recentFiles: await Hive.openBox<RecentFileModel>('m_recent'),
       profileDraft: await Hive.openBox<ProfileModel>('m_draft'),
+      user: await Hive.openBox<UserModel>('m_user'),
     );
   });
 

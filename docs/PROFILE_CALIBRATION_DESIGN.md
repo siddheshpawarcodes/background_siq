@@ -117,7 +117,7 @@ The guided wizard **replaces the current flat editor** for both create and edit 
 
 - Preview = `process` with `trim: 15s`, single FFmpeg invocation, single-pass `loudnorm` (fast).
 - Input = the **calibration voice sample**; music = the draft's `musicFilePath`; all DSP from the draft profile.
-- Output = one reused temp file (`wbm_preview.<sampleExt>`), played via `just_audio`.
+- Output = one reused temp file (`echobug_preview.<sampleExt>`), played via `just_audio`.
 - **Cancel/replace:** each Preview gets a job id; starting a new preview cancels the prior native session (`AudioProcessorPort.cancel`) so rapid iteration doesn't pile up renders.
 
 Production Apply is unchanged and already uses every profile field.
@@ -128,8 +128,8 @@ Production Apply is unchanged and already uses every profile field.
 
 - **Profiles:** existing Hive `profiles` box (typeId 0, +2 fields).
 - **Draft auto-save (UX req):** a tiny `draft` box keyed `'current'` storing the in-progress `ProfileModel`. Written on each wizard edit (debounced); cleared on Save/Cancel; restored if the user returns to an unfinished wizard. Survives app kill.
-- **Export:** serialize the profile to JSON → write `<name>.wbmprofile` (JSON) → share via the OS share sheet. Paths are included but flagged as device-local.
-- **Import:** pick a `.wbmprofile`/`.json` → deserialize → new id + timestamps. **If `musicFilePath`/`calibrationVoiceSamplePath` don't exist on this device, import succeeds but marks them missing and the wizard requires re-selecting music before the profile is usable** (edge case E5).
+- **Export:** serialize the profile to JSON → write `<name>.echobugprofile` (JSON) → share via the OS share sheet. Paths are included but flagged as device-local.
+- **Import:** pick a `.echobugprofile`/`.json` → deserialize → new id + timestamps. **If `musicFilePath`/`calibrationVoiceSamplePath` don't exist on this device, import succeeds but marks them missing and the wizard requires re-selecting music before the profile is usable** (edge case E5).
 
 ---
 
@@ -140,7 +140,7 @@ Production Apply is unchanged and already uses every profile field.
 3. Cancel any in-flight preview, then render trimmed 15 s to temp.
 4. Show generation progress (reuse the stage/% stream).
 5. On success, load + play via `just_audio`; expose play/pause/replay.
-6. Delete temp preview on calibration-screen dispose (and Settings→Clear cache already removes `wbm_preview*`).
+6. Delete temp preview on calibration-screen dispose (and Settings→Clear cache already removes `echobug_preview*`).
 
 **Constant:** `previewDuration` is currently 15 s (spec says 15–30). Keep 15 s default for speed; configurable in `AppConstants`. (Decision Q4 covers exact length if you want 30.)
 
@@ -178,7 +178,7 @@ Production Apply is unchanged and already uses every profile field.
 | **CP2** | Wizard scaffold: 4-step PageView, `WizardState` controller, step nav, draft auto-save box + restore | host unit: draft save/load; widget: steps render |
 | **CP3** | Step 4 Calibrate UI: all controls bound to draft (reuse editor widgets), values beside sliders, estimated-output summary | widget test |
 | **CP4** | Live preview: reuse `GeneratePreviewUseCase` with sample+draft, just_audio playback, debounce, cancel-prior, progress | **on-device**: preview renders + plays |
-| **CP5** | Export/Import profile (JSON `.wbmprofile`, share sheet, missing-file handling) + edit loads into wizard | host unit: serialize/deserialize; device: round-trip |
+| **CP5** | Export/Import profile (JSON `.echobugprofile`, share sheet, missing-file handling) + edit loads into wizard | host unit: serialize/deserialize; device: round-trip |
 | **CP6** | *(Optional)* Waveform via FFmpeg peak extraction + CustomPainter | device: renders for a sample |
 | **CP7** | Profiles screen wiring (FAB→wizard, Calibrate action, import button); retire flat editor route | analyze + walkthrough |
 | **CP8** | Full on-device calibration walkthrough (create→calibrate→preview→iterate→save→use in Apply) | device integration test |
@@ -192,7 +192,7 @@ Main-app Apply integration needs **no change** — it already consumes every pro
 - **Q1 ✅ Replace** the flat Profile Editor with the guided wizard (create + edit).
 - **Q2 ✅ Defer waveform** — optional later polish (CP6 dropped from this round).
 - **Q3 ✅ Keep enums** — JSON export serializes them as readable strings.
-- **Q4 ✅ Share sheet** (`share_plus`) for `.wbmprofile` JSON; **preview = 15 s**.
+- **Q4 ✅ Share sheet** (`share_plus`) for `.echobugprofile` JSON; **preview = 15 s**.
 
 Build order: CP1 → CP2 → CP3 → CP4 → CP5 → CP7 → CP8 (CP6 waveform deferred).
 ```

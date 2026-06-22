@@ -3,10 +3,11 @@
 // Check in to version control
 
 import 'package:hive_ce/hive_ce.dart';
-import 'package:background_siq/data/models/history_model.dart';
-import 'package:background_siq/data/models/profile_model.dart';
-import 'package:background_siq/data/models/recent_file_model.dart';
-import 'package:background_siq/data/models/settings_model.dart';
+import 'package:echobug/data/models/history_model.dart';
+import 'package:echobug/data/models/profile_model.dart';
+import 'package:echobug/data/models/recent_file_model.dart';
+import 'package:echobug/data/models/settings_model.dart';
+import 'package:echobug/data/models/user_model.dart';
 
 extension HiveRegistrar on HiveInterface {
   void registerAdapters() {
@@ -14,6 +15,7 @@ extension HiveRegistrar on HiveInterface {
     registerAdapter(ProfileModelAdapter());
     registerAdapter(RecentFileModelAdapter());
     registerAdapter(SettingsModelAdapter());
+    registerAdapter(UserModelAdapter());
   }
 }
 
@@ -23,5 +25,6 @@ extension IsolatedHiveRegistrar on IsolatedHiveInterface {
     registerAdapter(ProfileModelAdapter());
     registerAdapter(RecentFileModelAdapter());
     registerAdapter(SettingsModelAdapter());
+    registerAdapter(UserModelAdapter());
   }
 }

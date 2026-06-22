@@ -1,4 +1,4 @@
-/// Sealed failure hierarchy for WBM (SRS §13).
+/// Sealed failure hierarchy for EchoBug (SRS §13).
 ///
 /// Layers return [Failure] via [Result] instead of throwing across boundaries.
 /// Each failure carries a user-facing [message]; technical detail stays in
@@ -75,4 +75,17 @@ class ValidationFailure extends Failure {
 class UnknownFailure extends Failure {
   const UnknownFailure({super.debugDetail})
       : super(message: 'Something went wrong. Please try again.');
+}
+
+/// The user dismissed the Google account picker before completing sign-in.
+/// Treated as a no-op by the UI (no error banner).
+class SignInCancelledFailure extends Failure {
+  const SignInCancelledFailure() : super(message: 'Sign-in was cancelled.');
+}
+
+/// Google sign-in failed for a reason other than user cancellation
+/// (network, misconfigured OAuth client, revoked token, ...).
+class SignInFailure extends Failure {
+  const SignInFailure({super.debugDetail})
+      : super(message: 'Could not sign in with Google. Please try again.');
 }

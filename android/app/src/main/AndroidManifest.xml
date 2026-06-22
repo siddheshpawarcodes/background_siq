@@ -1,6 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Dataset Batch publishes output into the public Music/ folder via
+         MediaStore. Android 10+ needs no permission; only Android 9 and below
+         require the legacy write grant (scoped to API ≤28). -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
     <application
-        android:label="background_siq"
+        android:label="EchoBug"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

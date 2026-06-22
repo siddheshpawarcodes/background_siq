@@ -1,11 +1,11 @@
 // On-device verification of m4a (AAC) as both input and output container.
 import 'dart:io';
 
-import 'package:background_siq/domain/entities/audio_file_ref.dart';
-import 'package:background_siq/domain/entities/background_profile.dart';
-import 'package:background_siq/domain/entities/enums.dart';
-import 'package:background_siq/domain/entities/process_request.dart';
-import 'package:background_siq/services/audio/ffmpeg_audio_processor.dart';
+import 'package:echobug/domain/entities/audio_file_ref.dart';
+import 'package:echobug/domain/entities/background_profile.dart';
+import 'package:echobug/domain/entities/enums.dart';
+import 'package:echobug/domain/entities/process_request.dart';
+import 'package:echobug/services/audio/ffmpeg_audio_processor.dart';
 import 'package:ffmpeg_kit_flutter_new/ffmpeg_kit.dart';
 import 'package:ffmpeg_kit_flutter_new/return_code.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -59,7 +59,7 @@ void main() {
     await generate(['-y', '-f', 'lavfi', '-i', 'sine=frequency=220:duration=4',
       '-ar', '44100', '-ac', '2', voice]);
 
-    final out = p.join(dir.path, 'voice_WBM.m4a');
+    final out = p.join(dir.path, 'voice_EchoBug.m4a');
     await run(AudioFileRef(path: voice, name: 'v.wav', ext: 'wav'), out);
 
     expect(File(out).existsSync(), isTrue);
@@ -75,7 +75,7 @@ void main() {
     await generate(['-y', '-f', 'lavfi', '-i', 'sine=frequency=300:duration=4',
       '-c:a', 'aac', '-b:a', '128k', src]);
 
-    final out = p.join(dir.path, 'in_WBM.m4a');
+    final out = p.join(dir.path, 'in_EchoBug.m4a');
     await run(AudioFileRef(path: src, name: 'in.m4a', ext: 'm4a'), out);
 
     expect(File(out).existsSync(), isTrue);

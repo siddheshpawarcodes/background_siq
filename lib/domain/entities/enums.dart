@@ -1,4 +1,4 @@
-/// Domain enums for WBM (SRS §7.1).
+/// Domain enums for EchoBug (SRS §7.1).
 ///
 /// Persisted as their `index` in Hive models for migration safety; the
 /// mapper layer converts between index and enum. Each carries a [label] for

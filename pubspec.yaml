@@ -1,4 +1,4 @@
-name: background_siq
+name: echobug
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -84,13 +84,17 @@ dev_dependencies:
   flutter_launcher_icons: ^0.14.1
 
 # Launcher icon configuration — run: dart run flutter_launcher_icons
+# The firefly art is a full-bleed icon (its own gradient background + centered
+# subject), so it drives iOS + legacy Android directly and is also used as the
+# Android adaptive-icon BACKGROUND layer (cropped to the launcher shape), with a
+# transparent foreground so the centered firefly survives the mask.
 flutter_launcher_icons:
   android: true
   ios: true
   remove_alpha_ios: true
   image_path: "assets/icon/app_icon.png"
   min_sdk_android: 21
-  adaptive_icon_background: "#D80000"
+  adaptive_icon_background: "assets/icon/app_icon.png"
   adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
 
 # For information on the generic Dart part of this file, see the

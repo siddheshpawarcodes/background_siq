@@ -1,17 +1,17 @@
 // On-device batch processing (SRS §15): multiple files, one profile.
 import 'dart:io';
 
-import 'package:background_siq/domain/entities/app_settings.dart';
-import 'package:background_siq/domain/entities/audio_file_ref.dart';
-import 'package:background_siq/domain/entities/background_profile.dart';
-import 'package:background_siq/domain/entities/enums.dart';
-import 'package:background_siq/domain/entities/history_entry.dart';
-import 'package:background_siq/domain/repositories/history_repository.dart';
-import 'package:background_siq/domain/repositories/settings_repository.dart';
-import 'package:background_siq/domain/usecases/apply_profile_usecase.dart';
-import 'package:background_siq/domain/usecases/process_batch_usecase.dart';
-import 'package:background_siq/services/audio/ffmpeg_audio_processor.dart';
-import 'package:background_siq/services/filesystem/file_system_service.dart';
+import 'package:echobug/domain/entities/app_settings.dart';
+import 'package:echobug/domain/entities/audio_file_ref.dart';
+import 'package:echobug/domain/entities/background_profile.dart';
+import 'package:echobug/domain/entities/enums.dart';
+import 'package:echobug/domain/entities/history_entry.dart';
+import 'package:echobug/domain/repositories/history_repository.dart';
+import 'package:echobug/domain/repositories/settings_repository.dart';
+import 'package:echobug/domain/usecases/apply_profile_usecase.dart';
+import 'package:echobug/domain/usecases/process_batch_usecase.dart';
+import 'package:echobug/services/audio/ffmpeg_audio_processor.dart';
+import 'package:echobug/services/filesystem/file_system_service.dart';
 import 'package:ffmpeg_kit_flutter_new/ffmpeg_kit.dart';
 import 'package:ffmpeg_kit_flutter_new/return_code.dart';
 import 'package:flutter/foundation.dart';
@@ -82,7 +82,7 @@ void main() {
     expect(last.successCount, 3, reason: 'all 3 should succeed');
     for (final r in last.completed) {
       expect(File(r.outputPath!).existsSync(), isTrue);
-      expect(p.basename(r.outputPath!), endsWith('_WBM.wav'));
+      expect(p.basename(r.outputPath!), endsWith('_EchoBug.wav'));
     }
     expect(history.entries, hasLength(3));
     debugPrint('📦 BATCH: ${last.successCount}/${last.total} files processed; '

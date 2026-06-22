@@ -6,6 +6,7 @@ import '../../data/models/history_model.dart';
 import '../../data/models/profile_model.dart';
 import '../../data/models/recent_file_model.dart';
 import '../../data/models/settings_model.dart';
+import '../../data/models/user_model.dart';
 import '../../data/seed/default_profiles.dart';
 import '../../hive_registrar.g.dart';
 import '../constants/app_constants.dart';
@@ -30,6 +31,7 @@ class Bootstrap {
       recentFiles:
           await Hive.openBox<RecentFileModel>(AppConstants.recentFilesBox),
       profileDraft: await Hive.openBox<ProfileModel>(AppConstants.profileDraftBox),
+      user: await Hive.openBox<UserModel>(AppConstants.userBox),
     );
 
     await _seedDefaultProfiles(boxes);

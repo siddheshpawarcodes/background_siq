@@ -5,11 +5,11 @@
 // Profile Editor, and Settings. The file-picker step is bypassed by injecting a
 // generated voice file (the system picker cannot be automated), which is exactly
 // the AudioFileRef the picker would have produced.
-import 'package:background_siq/core/di/bootstrap.dart';
-import 'package:background_siq/core/di/repository_providers.dart';
-import 'package:background_siq/domain/entities/audio_file_ref.dart';
-import 'package:background_siq/presentation/app.dart';
-import 'package:background_siq/presentation/features/home/home_controller.dart';
+import 'package:echobug/core/di/bootstrap.dart';
+import 'package:echobug/core/di/repository_providers.dart';
+import 'package:echobug/domain/entities/audio_file_ref.dart';
+import 'package:echobug/presentation/app.dart';
+import 'package:echobug/presentation/features/home/home_controller.dart';
 import 'package:ffmpeg_kit_flutter_new/ffmpeg_kit.dart';
 import 'package:ffmpeg_kit_flutter_new/return_code.dart';
 import 'package:flutter/material.dart';
@@ -46,11 +46,11 @@ void main() {
     addTearDown(container.dispose);
 
     await tester.pumpWidget(
-      UncontrolledProviderScope(container: container, child: const WbmApp()),
+      UncontrolledProviderScope(container: container, child: const EchoBugApp()),
     );
     await tester.pumpAndSettle();
     step('Home loaded');
-    expect(find.text('Window Background Music'), findsOneWidget);
+    expect(find.text('EchoBug'), findsOneWidget);
     expect(find.text('No file selected'), findsOneWidget);
     expect(find.text('Apply'), findsOneWidget);
 
@@ -95,8 +95,8 @@ void main() {
     // --- History tab ---
     await tester.tap(find.text('History'));
     await tester.pumpAndSettle();
-    await pumpUntil(tester, find.textContaining('demo_WBM'));
-    step('History shows the new entry (demo_WBM.wav)');
+    await pumpUntil(tester, find.textContaining('demo_EchoBug'));
+    step('History shows the new entry (demo_EchoBug.wav)');
 
     // --- Profiles tab + open editor ---
     await tester.tap(find.text('Profiles'));

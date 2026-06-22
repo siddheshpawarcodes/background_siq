@@ -27,12 +27,19 @@ class FilterGraphBuilder {
   FfmpegCommand build({
     required String voicePath,
     String? musicPath,
+    String? coverImagePath,
     required String outputPath,
     required BackgroundProfile profile,
     required Duration totalDuration,
     Duration? trim,
   }) {
     final hasMusic = musicPath != null && musicPath.isNotEmpty;
+    // Cover art is only embeddable in containers that have a picture slot
+    // (mp3/m4a/aac/flac). Output mirrors the source container (SRS §3.1), so
+    // for wav/ogg we silently skip the image rather than fail the render.
+    final hasCover = coverImagePath != null &&
+        coverImagePath.isNotEmpty &&
+        _coverSupported(outputPath);
     final effectiveDuration = trim ?? totalDuration;
 
     final voiceFilters = _voiceFilters(profile);
@@ -68,18 +75,48 @@ class FilterGraphBuilder {
 
     final filterComplex = parts.join(';');
 
+    // The cover image is appended as the LAST input so the existing audio
+    // stream indices ([0:a] voice, [1:a] music) referenced by the filter
+    // graph stay stable. Its index is therefore 2 with music, 1 without.
+    final coverIndex = hasMusic ? 2 : 1;
+
     final args = <String>[
       '-y',
       '-i', voicePath,
       if (hasMusic) ...['-stream_loop', '-1', '-i', musicPath],
+      if (hasCover) ...['-i', coverImagePath],
       '-filter_complex', filterComplex,
       '-map', mapLabel,
+      if (hasCover) ...['-map', '$coverIndex:v'],
       if (trim != null) ...['-t', _seconds(trim)],
       ..._encoderArgsForExtension(outputPath),
+      if (hasCover) ..._coverArgsForExtension(outputPath),
       outputPath,
     ];
 
     return FfmpegCommand(arguments: args, filterComplex: filterComplex);
+  }
+
+  /// Whether [outputPath]'s container can embed a cover-art picture.
+  bool _coverSupported(String outputPath) {
+    final ext = p.extension(outputPath).replaceFirst('.', '').toLowerCase();
+    return AppConstants.coverArtCapableExtensions.contains(ext);
+  }
+
+  /// Maps the appended image stream as an attached picture (cover art). The
+  /// image is copied as-is; mp3 needs ID3v2.3 + the conventional cover tags
+  /// for broad player compatibility.
+  List<String> _coverArgsForExtension(String outputPath) {
+    final ext = p.extension(outputPath).replaceFirst('.', '').toLowerCase();
+    return <String>[
+      '-c:v', 'copy',
+      '-disposition:v', 'attached_pic',
+      if (ext == 'mp3') ...[
+        '-id3v2_version', '3',
+        '-metadata:s:v', 'title=Album cover',
+        '-metadata:s:v', 'comment=Cover (front)',
+      ],
+    ];
   }
 
   /// Steps 2 & 3: noise reduction + voice enhancement.

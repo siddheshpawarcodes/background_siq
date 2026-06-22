@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../core/di/auth_providers.dart';
 import '../../../core/di/repository_providers.dart';
 import '../../../core/di/usecase_providers.dart';
 import '../../../domain/entities/app_settings.dart';
+import '../../../domain/entities/auth_user.dart';
 import '../../../domain/entities/enums.dart';
+import '../../router/app_router.dart';
+import '../../shared/user_avatar.dart';
 
 /// Settings — export folder/format, theme, auto-open, logging, cache, reset
 /// (SRS §11.6). Persisted via the settings repository.
@@ -17,6 +22,7 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settingsAsync = ref.watch(settingsStreamProvider);
+    final user = ref.watch(currentUserProvider).valueOrNull;
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: settingsAsync.when(
@@ -24,6 +30,9 @@ class SettingsScreen extends ConsumerWidget {
         error: (e, _) => Center(child: Text('Could not load settings: $e')),
         data: (s) => ListView(
           children: [
+            _sectionHeader(context, 'Account'),
+            ..._accountTiles(context, ref, user),
+            const Divider(),
             _sectionHeader(context, 'Export'),
             ListTile(
               leading: const Icon(Icons.folder_outlined),
@@ -101,6 +110,52 @@ class SettingsScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  /// Account section — sign in when signed out; profile summary, edit, and
+  /// sign out when signed in. Sign-in is optional (SRS §11).
+  List<Widget> _accountTiles(BuildContext context, WidgetRef ref, AuthUser? user) {
+    if (user == null) {
+      return [
+        ListTile(
+          leading: const Icon(Icons.login),
+          title: const Text('Sign in with Google'),
+          subtitle: const Text('Personalise the app and manage your profile'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.push(Routes.login),
+        ),
+      ];
+    }
+    return [
+      ListTile(
+        leading: UserAvatar(user: user, radius: 22),
+        title: Text(user.effectiveName),
+        subtitle: Text(user.email),
+        trailing: const Icon(Icons.edit_outlined),
+        onTap: () => context.push(Routes.editProfile),
+      ),
+      ListTile(
+        leading: const Icon(Icons.logout),
+        title: const Text('Sign out'),
+        onTap: () => _signOut(context, ref),
+      ),
+    ];
+  }
+
+  Future<void> _signOut(BuildContext context, WidgetRef ref) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Sign out?'),
+        content: const Text('Your profile stays on this device and is restored '
+            'when you sign back in.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Sign out')),
+        ],
+      ),
+    );
+    if (ok ?? false) await ref.read(signOutUseCaseProvider).call();
   }
 
   Future<void> _clearCache(BuildContext context, WidgetRef ref) async {

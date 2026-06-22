@@ -24,6 +24,7 @@ class ProfileModel extends HiveObject {
     required this.modifiedDate,
     this.description,
     this.calibrationVoiceSamplePath,
+    this.coverImagePath,
   });
 
   @HiveField(0)
@@ -58,4 +59,8 @@ class ProfileModel extends HiveObject {
   String? description;
   @HiveField(14)
   String? calibrationVoiceSamplePath;
+  // Field 15 appended for the cover-art (thumbnail) feature. Backward-compatible:
+  // older records read this as null.
+  @HiveField(15)
+  String? coverImagePath;
 }

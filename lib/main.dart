@@ -11,7 +11,7 @@ Future<void> main() async {
   runApp(
     ProviderScope(
       overrides: [appBoxesProvider.overrideWithValue(boxes)],
-      child: const WbmApp(),
+      child: const EchoBugApp(),
     ),
   );
 }

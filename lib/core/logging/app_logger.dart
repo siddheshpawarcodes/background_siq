@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
 
-/// Centralized logger for WBM.
+/// Centralized logger for EchoBug.
 ///
 /// Logging can be toggled from Settings (SRS §11). When disabled, only
 /// warnings and errors are emitted; when enabled, full debug output is shown.

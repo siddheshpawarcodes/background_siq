@@ -1,18 +1,18 @@
-import 'package:background_siq/core/errors/failures.dart';
-import 'package:background_siq/core/result/result.dart';
-import 'package:background_siq/domain/entities/app_settings.dart';
-import 'package:background_siq/domain/entities/audio_file_ref.dart';
-import 'package:background_siq/domain/entities/audio_meta.dart';
-import 'package:background_siq/domain/entities/background_profile.dart';
-import 'package:background_siq/domain/entities/enums.dart';
-import 'package:background_siq/domain/entities/history_entry.dart';
-import 'package:background_siq/domain/entities/process_request.dart';
-import 'package:background_siq/domain/ports/audio_processor_port.dart';
-import 'package:background_siq/domain/ports/file_system_port.dart';
-import 'package:background_siq/domain/repositories/history_repository.dart';
-import 'package:background_siq/domain/repositories/settings_repository.dart';
-import 'package:background_siq/domain/usecases/apply_profile_usecase.dart';
-import 'package:background_siq/domain/usecases/process_batch_usecase.dart';
+import 'package:echobug/core/errors/failures.dart';
+import 'package:echobug/core/result/result.dart';
+import 'package:echobug/domain/entities/app_settings.dart';
+import 'package:echobug/domain/entities/audio_file_ref.dart';
+import 'package:echobug/domain/entities/audio_meta.dart';
+import 'package:echobug/domain/entities/background_profile.dart';
+import 'package:echobug/domain/entities/enums.dart';
+import 'package:echobug/domain/entities/history_entry.dart';
+import 'package:echobug/domain/entities/process_request.dart';
+import 'package:echobug/domain/ports/audio_processor_port.dart';
+import 'package:echobug/domain/ports/file_system_port.dart';
+import 'package:echobug/domain/repositories/history_repository.dart';
+import 'package:echobug/domain/repositories/settings_repository.dart';
+import 'package:echobug/domain/usecases/apply_profile_usecase.dart';
+import 'package:echobug/domain/usecases/process_batch_usecase.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Fails for any source whose path contains "bad", otherwise completes.
@@ -41,7 +41,7 @@ class _Fs implements FileSystemPort {
   @override
   Future<Result<String>> resolveOutputPath(
           {required AudioFileRef source, String? preferredDir}) async =>
-      Result.ok('/out/${source.name}_WBM.${source.ext}');
+      Result.ok('/out/${source.name}_EchoBug.${source.ext}');
 }
 
 class _Settings implements SettingsRepository {

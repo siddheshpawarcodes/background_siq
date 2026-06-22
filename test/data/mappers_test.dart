@@ -1,8 +1,8 @@
-import 'package:background_siq/data/mappers/profile_mapper.dart';
-import 'package:background_siq/data/mappers/settings_mapper.dart';
-import 'package:background_siq/domain/entities/app_settings.dart';
-import 'package:background_siq/domain/entities/background_profile.dart';
-import 'package:background_siq/domain/entities/enums.dart';
+import 'package:echobug/data/mappers/profile_mapper.dart';
+import 'package:echobug/data/mappers/settings_mapper.dart';
+import 'package:echobug/domain/entities/app_settings.dart';
+import 'package:echobug/domain/entities/background_profile.dart';
+import 'package:echobug/domain/entities/enums.dart';
 import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter_test/flutter_test.dart';
 

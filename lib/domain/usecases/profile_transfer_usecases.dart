@@ -11,7 +11,7 @@ class ExportProfileUseCase {
   Future<Result<void>> call(BackgroundProfile profile) => _transfer.export(profile);
 }
 
-/// Imports a profile from a `.wbmprofile` file, assigns a fresh id + timestamps,
+/// Imports a profile from a `.echobugprofile` file, assigns a fresh id + timestamps,
 /// and saves it. Returns null if the user cancelled (design §6, edge E5: paths
 /// that don't exist on this device are kept but flagged when the profile is used).
 class ImportProfileUseCase {

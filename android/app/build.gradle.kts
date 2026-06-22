@@ -1,11 +1,12 @@
 plugins {
     id("com.android.application")
+    id("org.jetbrains.kotlin.android")
     // The Flutter Gradle Plugin must be applied after the Android plugin.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
 android {
-    namespace = "com.example.background_siq"
+    namespace = "com.example.echobug"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -20,7 +21,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.background_siq"
+        applicationId = "com.example.echobug"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         // ffmpeg_kit_flutter_new requires API 24+.
@@ -46,17 +47,12 @@ android {
         }
     }
 
-    // Build one APK per ABI instead of a single fat universal APK. Each device
-    // only needs its own ABI, so per-ABI APKs are ~1/4 the size. (Not needed for
-    // `flutter build appbundle`, which Google Play splits automatically.)
-    splits {
-        abi {
-            isEnable = true
-            reset()
-            include("armeabi-v7a", "arm64-v8a")
-            isUniversalApk = false
-        }
-    }
+    // For per-ABI APKs (~1/4 the size of a fat APK), build with
+    // `flutter build apk --split-per-abi`. A manual `splits { abi }` block is
+    // intentionally NOT used here: Flutter's Gradle plugin injects its own
+    // `ndk.abiFilters` on every build, which the Android Gradle Plugin refuses
+    // to combine with `splits.abi.filters` ("Conflicting configuration").
+    // `flutter build appbundle` is split automatically by Google Play.
 }
 
 flutter {

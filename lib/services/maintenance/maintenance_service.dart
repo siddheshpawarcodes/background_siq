@@ -20,7 +20,7 @@ class MaintenanceService {
     var removed = 0;
     if (await tmp.exists()) {
       await for (final entity in tmp.list()) {
-        if (entity is File && p.basename(entity.path).startsWith('wbm_preview')) {
+        if (entity is File && p.basename(entity.path).startsWith('echobug_preview')) {
           await entity.delete();
           removed++;
         }
@@ -37,6 +37,7 @@ class MaintenanceService {
       _boxes.settings.clear(),
       _boxes.history.clear(),
       _boxes.recentFiles.clear(),
+      _boxes.user.clear(),
     ]);
     final now = DateTime.now();
     for (final profile in defaultProfiles(now)) {

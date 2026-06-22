@@ -1,15 +1,19 @@
-/// Application-wide constants for Window Background Music (WBM).
+/// Application-wide constants for EchoBug.
 ///
 /// Centralizes values referenced across layers so there are no magic strings.
 class AppConstants {
   AppConstants._();
 
-  static const String appName = 'Window Background Music';
-  static const String appShortName = 'WBM';
+  static const String appName = 'EchoBug';
+  static const String appShortName = 'EchoBug';
 
   /// Suffix appended to every processed output file (before the extension).
-  /// e.g. `meeting.mp3` -> `meeting_WBM.mp3`.
-  static const String outputSuffix = '_WBM';
+  /// e.g. `meeting.mp3` -> `meeting_echobug.mp3`.
+  static const String outputSuffix = '_echobug';
+
+  /// Top-level public folder (under Music/) that the Dataset Batch feature
+  /// mirrors processed output into, e.g. `Music/EchoBug/music data/Amalki/...`.
+  static const String datasetOutputFolder = 'EchoBug';
 
   /// Audio container extensions the app can ingest (lower-case, no dot).
   static const Set<String> supportedInputExtensions = {
@@ -20,6 +24,15 @@ class AppConstants {
     'flac',
     'ogg',
   };
+
+  /// Output container extensions that can carry an embedded cover-art image
+  /// (the thumbnail). The output mirrors the source container (SRS §3.1), so
+  /// a profile's cover image is only embedded when the file is one of these;
+  /// `wav` and `ogg` have no reliable cover-art slot and are skipped.
+  static const Set<String> coverArtCapableExtensions = {'mp3', 'm4a', 'aac', 'flac'};
+
+  /// Human-readable list of cover-art-capable formats, for UI hints.
+  static const String coverArtCapableLabel = 'MP3, M4A and FLAC';
 
   /// Default background-music volume (percent) for new profiles.
   static const int defaultMusicVolume = 20;
@@ -41,10 +54,14 @@ class AppConstants {
   static const String historyBox = 'history';
   static const String recentFilesBox = 'recent_files';
   static const String profileDraftBox = 'profile_draft';
+  static const String userBox = 'user';
 
   /// Key for the single in-progress wizard draft (auto-save).
   static const String draftKey = 'current';
 
   /// Singleton key for the settings box.
   static const String settingsKey = 'app';
+
+  /// Singleton key for the signed-in account in the user box.
+  static const String userKey = 'current';
 }

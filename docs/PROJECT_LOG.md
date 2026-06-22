@@ -1,9 +1,9 @@
-# WBM — Project Log, Architecture & Change History
+# EchoBug — Project Log, Architecture & Change History
 
-**App:** Window Background Music (WBM) — `background_siq`
+**App:** EchoBug — `echobug`
 **Purpose:** 100% offline Flutter app that mixes a voice recording with background music and exports a broadcast-quality file, driven by reusable, calibratable profiles.
 **Platforms:** Android + iOS (mobile only; iOS code-ready, not yet built — no device). Desktop out of scope.
-**Last updated:** 2026-06-15
+**Last updated:** 2026-06-22
 
 > Companion docs: [SRS_AND_ARCHITECTURE.md](SRS_AND_ARCHITECTURE.md) (full SRS + 10-phase roadmap + decisions) · [PROFILE_CALIBRATION_DESIGN.md](PROFILE_CALIBRATION_DESIGN.md) (calibration feature design).
 
@@ -11,7 +11,7 @@
 
 ## 1. What the app does
 
-Primary flow: **open → pick a voice file → pick a profile → Apply → `meeting.mp3` becomes `meeting_WBM.mp3`** (mirror-source extension), with the full 9-step DSP pipeline applied. Also: batch (up to 50 files), 15-second live preview, profile creation/calibration wizard, processing history, and settings — all offline, no network/cloud/API/subscription.
+Primary flow: **open → pick a voice file → pick a profile → Apply → `meeting.mp3` becomes `meeting_EchoBug.mp3`** (mirror-source extension), with the full 9-step DSP pipeline applied. Also: batch (up to 50 files), 15-second live preview, profile creation/calibration wizard, processing history, and settings — all offline, no network/cloud/API/subscription.
 
 ### 9-step audio pipeline (single FFmpeg invocation)
 1. Import voice → 2. Noise reduction (`afftdn`, Off/Mild/Medium/Aggressive) → 3. Voice enhancement (`highpass`+`equalizer`+`acompressor`) → 4. Music mix (`volume`+`amix`) → 5. Side-chain ducking (`sidechaincompress`, Off/Light/Medium/Strong) → 6. Fade in (`afade`) → 7. Fade out (`afade`) → 8. Loudness normalization (`loudnorm`, **−16 LUFS / −1.5 dBTP / LRA 11**) → 9. Export (encoder chosen by output container).
@@ -44,7 +44,7 @@ Dependencies point inward. Presentation → Domain ← Data; services implement 
 ```
 lib/
 ├── core/                     # cross-cutting
-│   ├── constants/            # AppConstants (formats, _WBM suffix, loudness, box names, maxBatchFiles=50)
+│   ├── constants/            # AppConstants (formats, _EchoBug suffix, loudness, box names, maxBatchFiles=50)
 │   ├── errors/               # sealed Failure hierarchy (+ ValidationFailure)
 │   ├── result/               # Result<T> = Ok | Err
 │   ├── theme/                # Material 3 light/dark + Spacing tokens
@@ -52,10 +52,11 @@ lib/
 │   └── di/                   # bootstrap (Hive init/seed) + provider wiring
 ├── domain/                   # pure, no Flutter/IO
 │   ├── entities/             # BackgroundProfile, AudioFileRef, ProcessingJob, HistoryEntry,
-│   │                         #   AppSettings, AudioMeta, ProcessRequest/Progress, BatchProgress, enums
+│   │                         #   AppSettings, AudioMeta, ProcessRequest/Progress, BatchProgress, enums,
+│   │                         #   DatasetBatchConfig/AudioFile/Progress/FileFailure
 │   ├── repositories/         # interfaces: Profile, Settings, History, RecentFiles, Draft
 │   ├── ports/                # AudioProcessorPort, FileSystemPort
-│   └── usecases/             # Apply, Preview, Batch, profile CRUD, settings, transfer (export/import)
+│   └── usecases/             # Apply, Preview, Batch, ProcessDataset, profile CRUD, settings, transfer (export/import)
 ├── data/
 │   ├── models/               # Hive DTOs (@HiveType) + generated adapters
 │   ├── mappers/              # model ⇄ entity (enum-by-index, safe)
@@ -65,13 +66,14 @@ lib/
 ├── services/
 │   ├── audio/                # FfmpegAudioProcessor (port impl), FilterGraphBuilder, StageTimeline
 │   ├── filesystem/           # FilePickService, FileSystemService (output path resolution)
+│   ├── dataset/              # DatasetFileScanner, DatasetBatchCancellationToken, SameFolderFileSystem (FileSystemPort decorator)
 │   ├── maintenance/          # clear cache + reset app
 │   ├── platform/             # OpenFileService
 │   └── profile/              # ProfileTransferService (export/import)
 └── presentation/
     ├── app.dart, router/     # MaterialApp.router + go_router
     ├── shared/               # MainShell (nav), AudioFileCard
-    └── features/             # home, processing, profiles, profile_wizard, batch, history, settings
+    └── features/             # home, processing, profiles, profile_wizard, batch, dataset_batch, history, settings
 ```
 
 ### Key patterns
@@ -101,12 +103,13 @@ lib/
 | **Home** | file selector, profile dropdown, Preview, Apply, recent files, batch entry (app-bar icon) |
 | **Processing** | live % + stage checklist; Cancel (kills native session); success card (Open file) / failure card |
 | **Batch** | add ≤50 files, one profile, Apply-all; per-file + overall progress; results summary |
+| **Dataset Batch** | pick a root folder, add one+ filename suffixes (chips), one profile; recursively process all matches (no cap), output saved beside each source; live counts, cancel, completion summary, retry-failed |
 | **Profiles** | list + Edit/Calibrate, Duplicate, Export, Delete (confirm); Import (app bar) |
 | **Profile Wizard** | 4 steps: Info → Music → Calibration Sample → Calibrate (controls + live Preview + estimated output); draft auto-save |
 | **History** | runs with status; tap to reopen output; clear-all |
 | **Settings** | export folder/format, theme (live), auto-open, logging, clear cache, reset app |
 
-Navigation: 4-tab bottom bar (Home/Profiles/History/Settings); Processing, Batch, Wizard are pushed routes.
+Navigation: 4-tab bottom bar (Home/Profiles/History/Settings); Processing, Batch, Dataset Batch, Wizard are pushed routes (Batch + Dataset Batch via Home app-bar icons).
 
 ---
 
@@ -128,10 +131,20 @@ Navigation: 4-tab bottom bar (Home/Profiles/History/Settings); Processing, Batch
 - **P7 iOS** — deferred (no device; code is port-ready).
 
 ### Feature: Batch processing
-`ProcessBatchUseCase` (sequential, reuses `ApplyProfileUseCase` per file, cap 50, failures don't abort), Batch screen, Home entry. **Device-verified** (3 files → 3 `_WBM` outputs).
+`ProcessBatchUseCase` (sequential, reuses `ApplyProfileUseCase` per file, cap 50, failures don't abort), Batch screen, Home entry. **Device-verified** (3 files → 3 `_EchoBug` outputs).
+
+### Feature: Dataset Batch processing (2026-06-22)
+Processes an entire folder tree of audio files in one run — a **separate, additive** capability that leaves the manual Batch flow untouched. Built strictly by composition: **zero changes** to `ApplyProfileUseCase`, `ProcessBatchUseCase`, `BatchProgress`, `AudioFileRef`, or `BatchScreen`.
+- **Flow:** pick a dataset root folder → add one or more filename suffixes (`_eng`, `_hin`, `_san`, entered via a text field + Add button, shown as removable chips) → pick a profile → Start. Every file under the tree whose name ends with `<suffix>.m4a` for **any** added suffix is processed; output written **beside its source** as `<name>_EchoBug.m4a` (existing `_uniquify` handles `_1/_2…` collisions).
+- **Key design — `SameFolderFileSystem` decorator:** the single-file engine resolves output into the user's default export folder; this `FileSystemPort` decorator forces `preferredDir = dirname(source.path)` and delegates everything else, so a dataset-specific `ApplyProfileUseCase` (wired in DI) reuses validation + the FFmpeg engine + history recording verbatim while routing output next to each source. No audio/profile logic duplicated.
+- **Components (all new):** `services/dataset/` → `DatasetFileScanner` (lazy recursive `Directory.list`, case-insensitive ext / case-sensitive suffix, any-of-N match), `DatasetBatchCancellationToken`, `SameFolderFileSystem`; domain → `ProcessDatasetUseCase` + entities `DatasetBatchConfig`/`DatasetAudioFile`/`DatasetBatchProgress`/`DatasetFileFailure`; presentation → `dataset_batch/` screen + kept-alive controller/state.
+- **Scale & safety:** no file-count cap (calls `ApplyProfileUseCase` directly, bypassing the 50 limit); sequential to avoid native-render thrash; per-file failure isolation with captured error/stack; cooperative cancellation checked **between** files (in-flight file always finishes → no corrupt output); missing-at-process-time files counted as *skipped*; completion summary (total/processed/success/fail/skip + duration) with **View failed** and **Retry failed**.
+- **Modifications to existing code — additive only:** 3 providers in `usecase_providers.dart`, 1 route in `app_router.dart`, 1 app-bar icon in `home_screen.dart`.
+- **Status: host-tested only, NOT yet device-verified.** 22 host tests added (scanner, decorator, use-case orchestration incl. failure/cancel/retry/skip/empty); `flutter analyze` clean; full suite 47 green. No on-device dataset run yet (recommend verifying Android scoped-storage folder write on a real device before release).
+- **Deferred:** `DatasetJob` Hive persistence (resume/audit) skipped to avoid a schema/registrar change — inputs persist in-session via the kept-alive controller; `.mp3/.wav/.aac` matching is wired via a configurable extension set (phase 1 = `m4a`).
 
 ### Feature: Profile Calibration & Preset Creator
-Design in `PROFILE_CALIBRATION_DESIGN.md`. **Decisions:** wizard replaces flat editor; keep enums; export/import via `share_plus` (`.wbmprofile` JSON); preview 15 s; waveform deferred.
+Design in `PROFILE_CALIBRATION_DESIGN.md`. **Decisions:** wizard replaces flat editor; keep enums; export/import via `share_plus` (`.echobugprofile` JSON); preview 15 s; waveform deferred.
 - Entity +`description` +`calibrationVoiceSamplePath`; Hive fields 13/14; JSON export/import.
 - `profile_wizard/` (4-step) + `ProfileWizardController` (autoDispose family, **debounced draft auto-save** to `profile_draft` box for new profiles) + `CalibrationPreviewController` (reuses `GeneratePreviewUseCase`, **cancel-prior render**).
 - `DraftRepository`, `ProfileTransferService`, Export/Import use cases.
@@ -153,11 +166,11 @@ Design in `PROFILE_CALIBRATION_DESIGN.md`. **Decisions:** wizard replaces flat e
 
 ## 8. Testing
 
-**Host (25 tests, `flutter test`):** filter-graph builder (8), mappers (2), profile repo CRUD (5), apply orchestration (3), batch orchestration (3), maintenance reset (1), profile JSON round-trip (2), widget smoke (1).
+**Host (47 tests, `flutter test`):** filter-graph builder (8), mappers (2), profile repo CRUD (5), apply orchestration (3), batch orchestration (3), maintenance reset (1), profile JSON round-trip (2), widget smoke (1), **dataset scanner (14)**, **same-folder file-system decorator (2)**, **dataset use-case orchestration (7: summary, failure-isolation, skip, cancel, retry, missing-profile, empty)**.
 
 **On-device integration (`flutter test integration_test/<file> -d <device>`):**
 - `render_test` — full pipeline → WAV, MP3 320k, voice-only
-- `apply_flow_test` — real `meeting_WBM.wav` + history
+- `apply_flow_test` — real `meeting_EchoBug.wav` + history
 - `m4a_test` — m4a in & out (AAC)
 - `ui_walkthrough_test` — all 6 screens
 - `perf_cancel_test` — long-file perf + cancellation
@@ -197,3 +210,4 @@ APKs are large because the full-GPL FFmpeg native libraries are bundled (offline
 - **Real release signing** before any store distribution.
 - **FLAC/OGG** output: codecs are bundled (full-GPL) but not yet individually device-run.
 - Optional: batch concurrency on high-end devices; output-folder UX on Android 13+ scoped storage.
+- **Dataset Batch: device verification** — confirm recursive folder write-back works under Android 13+ scoped storage on a real device (host-tested only so far); then consider `DatasetJob` Hive persistence (resume/audit) and enabling `.mp3/.wav/.aac` matching (extension set already configurable).

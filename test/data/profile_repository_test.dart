@@ -1,11 +1,11 @@
 import 'dart:io';
 
-import 'package:background_siq/data/models/profile_model.dart';
-import 'package:background_siq/data/repositories/profile_repository_impl.dart';
-import 'package:background_siq/domain/entities/background_profile.dart';
-import 'package:background_siq/domain/entities/enums.dart';
-import 'package:background_siq/domain/repositories/profile_repository.dart';
-import 'package:background_siq/hive_registrar.g.dart';
+import 'package:echobug/data/models/profile_model.dart';
+import 'package:echobug/data/repositories/profile_repository_impl.dart';
+import 'package:echobug/domain/entities/background_profile.dart';
+import 'package:echobug/domain/entities/enums.dart';
+import 'package:echobug/domain/repositories/profile_repository.dart';
+import 'package:echobug/hive_registrar.g.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce/hive.dart';
 
@@ -29,7 +29,7 @@ void main() {
   }
 
   setUp(() async {
-    tempDir = await Directory.systemTemp.createTemp('wbm_test_');
+    tempDir = await Directory.systemTemp.createTemp('echobug_test_');
     Hive.init(tempDir.path);
     if (!Hive.isAdapterRegistered(0)) Hive.registerAdapters();
     box = await Hive.openBox<ProfileModel>('profiles_test');

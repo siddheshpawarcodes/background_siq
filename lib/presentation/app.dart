@@ -9,8 +9,8 @@ import '../core/theme/app_theme.dart';
 import 'router/app_router.dart';
 
 /// Root application widget (SRS §9, §12).
-class WbmApp extends ConsumerWidget {
-  const WbmApp({super.key});
+class EchoBugApp extends ConsumerWidget {
+  const EchoBugApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

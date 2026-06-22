@@ -2,19 +2,19 @@
 //
 // Exercises the real ApplyProfileUseCase with the production FfmpegAudioProcessor
 // and FileSystemService: generates a voice file, runs Apply, and asserts a
-// real `_WBM` output file is written to the resolved path and history recorded.
+// real `_EchoBug` output file is written to the resolved path and history recorded.
 import 'dart:io';
 
-import 'package:background_siq/domain/entities/app_settings.dart';
-import 'package:background_siq/domain/entities/audio_file_ref.dart';
-import 'package:background_siq/domain/entities/background_profile.dart';
-import 'package:background_siq/domain/entities/enums.dart';
-import 'package:background_siq/domain/entities/history_entry.dart';
-import 'package:background_siq/domain/repositories/history_repository.dart';
-import 'package:background_siq/domain/repositories/settings_repository.dart';
-import 'package:background_siq/domain/usecases/apply_profile_usecase.dart';
-import 'package:background_siq/services/audio/ffmpeg_audio_processor.dart';
-import 'package:background_siq/services/filesystem/file_system_service.dart';
+import 'package:echobug/domain/entities/app_settings.dart';
+import 'package:echobug/domain/entities/audio_file_ref.dart';
+import 'package:echobug/domain/entities/background_profile.dart';
+import 'package:echobug/domain/entities/enums.dart';
+import 'package:echobug/domain/entities/history_entry.dart';
+import 'package:echobug/domain/repositories/history_repository.dart';
+import 'package:echobug/domain/repositories/settings_repository.dart';
+import 'package:echobug/domain/usecases/apply_profile_usecase.dart';
+import 'package:echobug/services/audio/ffmpeg_audio_processor.dart';
+import 'package:echobug/services/filesystem/file_system_service.dart';
 import 'package:ffmpeg_kit_flutter_new/ffmpeg_kit.dart';
 import 'package:ffmpeg_kit_flutter_new/return_code.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -46,7 +46,7 @@ class _History implements HistoryRepository {
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('Apply writes a real _WBM file and records success history',
+  testWidgets('Apply writes a real _EchoBug file and records success history',
       (tester) async {
     final tmp = await getTemporaryDirectory();
     final voicePath = p.join(tmp.path, 'meeting.wav');
@@ -89,8 +89,8 @@ void main() {
 
     expect(last.stage, JobStage.completed, reason: last.errorMessage ?? '');
     expect(last.outputPath, isNotNull);
-    // Mirror-source extension: meeting.wav -> meeting_WBM.wav
-    expect(p.basename(last.outputPath!), 'meeting_WBM.wav');
+    // Mirror-source extension: meeting.wav -> meeting_EchoBug.wav
+    expect(p.basename(last.outputPath!), 'meeting_EchoBug.wav');
     expect(File(last.outputPath!).existsSync(), isTrue);
     expect(File(last.outputPath!).lengthSync(), greaterThan(1000));
 

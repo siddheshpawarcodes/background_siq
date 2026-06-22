@@ -10,18 +10,18 @@ import '../../core/errors/failures.dart';
 import '../../core/result/result.dart';
 import '../../domain/entities/background_profile.dart';
 
-/// Exports/imports a profile as a `.wbmprofile` JSON file (design §6).
+/// Exports/imports a profile as a `.echobugprofile` JSON file (design §6).
 class ProfileTransferService {
   const ProfileTransferService();
 
-  /// Writes the profile to a temp `.wbmprofile` and opens the OS share sheet.
+  /// Writes the profile to a temp `.echobugprofile` and opens the OS share sheet.
   Future<Result<void>> export(BackgroundProfile profile) async {
     try {
       final dir = await getTemporaryDirectory();
       final safe = profile.name.isEmpty
           ? 'profile'
           : profile.name.replaceAll(RegExp(r'[^A-Za-z0-9_-]'), '_');
-      final file = File(p.join(dir.path, '$safe.wbmprofile'));
+      final file = File(p.join(dir.path, '$safe.echobugprofile'));
       await file.writeAsString(jsonEncode(profile.toJson()));
       await SharePlus.instance.share(
         ShareParams(files: [XFile(file.path)], subject: profile.name),
@@ -32,7 +32,7 @@ class ProfileTransferService {
     }
   }
 
-  /// Lets the user pick a `.wbmprofile`/JSON and parses it. Returns null when
+  /// Lets the user pick a `.echobugprofile`/JSON and parses it. Returns null when
   /// the user cancels.
   Future<Result<BackgroundProfile?>> pickAndParse() async {
     try {
@@ -43,7 +43,7 @@ class ProfileTransferService {
       return Result.ok(BackgroundProfile.fromJson(json));
     } catch (e) {
       return Result.err(
-        ValidationFailure('That file is not a valid WBM profile.'),
+        ValidationFailure('That file is not a valid EchoBug profile.'),
       );
     }
   }

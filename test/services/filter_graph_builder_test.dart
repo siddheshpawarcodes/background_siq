@@ -1,6 +1,6 @@
-import 'package:background_siq/domain/entities/background_profile.dart';
-import 'package:background_siq/domain/entities/enums.dart';
-import 'package:background_siq/services/audio/filter_graph_builder.dart';
+import 'package:echobug/domain/entities/background_profile.dart';
+import 'package:echobug/domain/entities/enums.dart';
+import 'package:echobug/services/audio/filter_graph_builder.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -124,5 +124,61 @@ void main() {
       totalDuration: const Duration(seconds: 300),
       trim: const Duration(seconds: 15));
     expect(cmd.arguments, containsAllInOrder(['-t', '15.00']));
+  });
+
+  test('embeds cover art for a supported output (mp3)', () {
+    final cmd = builder.build(
+      voicePath: 'v.wav',
+      coverImagePath: 'cover.jpg',
+      outputPath: 'o.mp3',
+      profile: profile(ducking: DuckingStrength.off),
+      totalDuration: const Duration(seconds: 60),
+    );
+    // Image appended as the last input → index 1 with no music.
+    expect(cmd.arguments, containsAllInOrder(['-i', 'cover.jpg']));
+    expect(cmd.arguments, containsAllInOrder(['-map', '1:v']));
+    expect(cmd.arguments, containsAllInOrder(['-c:v', 'copy']));
+    expect(cmd.arguments, containsAllInOrder(['-disposition:v', 'attached_pic']));
+    expect(cmd.arguments, containsAllInOrder(['-id3v2_version', '3']));
+  });
+
+  test('cover image index is 2 when music is also present', () {
+    final cmd = builder.build(
+      voicePath: 'v.wav',
+      musicPath: 'music.mp3',
+      coverImagePath: 'cover.png',
+      outputPath: 'o.m4a',
+      profile: profile(ducking: DuckingStrength.off),
+      totalDuration: const Duration(seconds: 60),
+    );
+    expect(cmd.arguments, containsAllInOrder(['-i', 'cover.png']));
+    expect(cmd.arguments, containsAllInOrder(['-map', '2:v']));
+    expect(cmd.arguments, containsAllInOrder(['-disposition:v', 'attached_pic']));
+    // ID3 tags are mp3-only.
+    expect(cmd.arguments, isNot(contains('-id3v2_version')));
+  });
+
+  test('skips cover art for an unsupported output (wav)', () {
+    final cmd = builder.build(
+      voicePath: 'v.wav',
+      coverImagePath: 'cover.jpg',
+      outputPath: 'o.wav',
+      profile: profile(format: ExportFormat.wav, ducking: DuckingStrength.off),
+      totalDuration: const Duration(seconds: 60),
+    );
+    expect(cmd.arguments, isNot(contains('cover.jpg')));
+    expect(cmd.arguments, isNot(contains('attached_pic')));
+    expect(cmd.arguments, isNot(contains('1:v')));
+  });
+
+  test('no cover args when no image is set', () {
+    final cmd = builder.build(
+      voicePath: 'v.wav',
+      outputPath: 'o.mp3',
+      profile: profile(ducking: DuckingStrength.off),
+      totalDuration: const Duration(seconds: 60),
+    );
+    expect(cmd.arguments, isNot(contains('attached_pic')));
+    expect(cmd.arguments, isNot(contains('-disposition:v')));
   });
 }

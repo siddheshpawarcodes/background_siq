@@ -15,6 +15,7 @@ abstract class BackgroundProfile with _$BackgroundProfile {
     required String name,
     String? description, // optional, shown in wizard
     String? musicFilePath,
+    String? coverImagePath, // optional cover-art image embedded in output (thumbnail)
     String? calibrationVoiceSamplePath, // calibration/preview only (design §9 E6)
     @Default(20) int musicVolume, // 0..100
     @Default(NoiseLevel.medium) NoiseLevel noiseReduction,

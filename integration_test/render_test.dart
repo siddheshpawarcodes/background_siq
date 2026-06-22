@@ -1,15 +1,15 @@
 // On-device render verification (SRS §10, P4).
 //
-// Generates real input audio with FFmpeg, runs the full WBM pipeline through
+// Generates real input audio with FFmpeg, runs the full EchoBug pipeline through
 // the production [FfmpegAudioProcessor], and asserts a valid output file is
 // produced. This is the proof the native engine actually renders audio.
 import 'dart:io';
 
-import 'package:background_siq/domain/entities/audio_file_ref.dart';
-import 'package:background_siq/domain/entities/background_profile.dart';
-import 'package:background_siq/domain/entities/enums.dart';
-import 'package:background_siq/domain/entities/process_request.dart';
-import 'package:background_siq/services/audio/ffmpeg_audio_processor.dart';
+import 'package:echobug/domain/entities/audio_file_ref.dart';
+import 'package:echobug/domain/entities/background_profile.dart';
+import 'package:echobug/domain/entities/enums.dart';
+import 'package:echobug/domain/entities/process_request.dart';
+import 'package:echobug/services/audio/ffmpeg_audio_processor.dart';
 import 'package:ffmpeg_kit_flutter_new/ffmpeg_kit.dart';
 import 'package:ffmpeg_kit_flutter_new/return_code.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -89,7 +89,7 @@ void main() {
 
   testWidgets('renders full pipeline (voice + looped music + duck + fades + loudnorm) to WAV',
       (tester) async {
-    final out = p.join(dir.path, 'out_WBM.wav');
+    final out = p.join(dir.path, 'out_EchoBug.wav');
     await runPipeline(profile(format: ExportFormat.wav, music: musicPath), out);
 
     final file = File(out);
@@ -104,7 +104,7 @@ void main() {
   }, timeout: const Timeout(Duration(minutes: 3)));
 
   testWidgets('renders to MP3 320k (verifies libmp3lame / GPL build)', (tester) async {
-    final out = p.join(dir.path, 'out_WBM.mp3');
+    final out = p.join(dir.path, 'out_EchoBug.mp3');
     await runPipeline(profile(format: ExportFormat.mp3, music: musicPath), out);
 
     final file = File(out);
@@ -113,7 +113,7 @@ void main() {
   }, timeout: const Timeout(Duration(minutes: 3)));
 
   testWidgets('voice-only render (no music) succeeds', (tester) async {
-    final out = p.join(dir.path, 'voice_only_WBM.wav');
+    final out = p.join(dir.path, 'voice_only_EchoBug.wav');
     await runPipeline(profile(format: ExportFormat.wav), out);
     expect(File(out).existsSync(), isTrue);
   }, timeout: const Timeout(Duration(minutes: 3)));

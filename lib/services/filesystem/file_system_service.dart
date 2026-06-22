@@ -45,7 +45,7 @@ class FileSystemService implements FileSystemPort {
   @override
   Future<String> previewPath(String extension) async {
     final tmp = await getTemporaryDirectory();
-    return p.join(tmp.path, 'wbm_preview.$extension');
+    return p.join(tmp.path, 'echobug_preview.$extension');
   }
 
   @override
@@ -60,7 +60,7 @@ class FileSystemService implements FileSystemPort {
     try {
       final dir = Directory(dirPath);
       if (!await dir.exists()) return false;
-      final probe = File(p.join(dirPath, '.wbm_write_test'));
+      final probe = File(p.join(dirPath, '.echobug_write_test'));
       await probe.writeAsString('ok');
       await probe.delete();
       return true;

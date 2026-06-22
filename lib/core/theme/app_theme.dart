@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Design tokens + Material 3 light/dark themes for WBM (SRS §11).
+/// Design tokens + Material 3 light/dark themes for EchoBug (SRS §11).
 class AppTheme {
   AppTheme._();
 

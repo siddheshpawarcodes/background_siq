@@ -44,6 +44,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             icon: const Icon(Icons.library_add_outlined),
             onPressed: () => context.push(Routes.batch),
           ),
+          IconButton(
+            tooltip: 'Dataset batch processing',
+            icon: const Icon(Icons.folder_special_outlined),
+            onPressed: () => context.push(Routes.datasetBatch),
+          ),
         ],
       ),
       body: ListView(

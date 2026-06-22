@@ -21,17 +21,24 @@ class ApplyProfileUseCase {
     required SettingsRepository settings,
     required HistoryRepository history,
     required String Function() idGenerator,
+    bool recordHistory = true,
   })  : _processor = processor,
         _fileSystem = fileSystem,
         _settings = settings,
         _history = history,
-        _newId = idGenerator;
+        _newId = idGenerator,
+        _shouldRecordHistory = recordHistory;
 
   final AudioProcessorPort _processor;
   final FileSystemPort _fileSystem;
   final SettingsRepository _settings;
   final HistoryRepository _history;
   final String Function() _newId;
+
+  /// When false, this use case skips writing a [HistoryEntry] per file. Used by
+  /// the Dataset Batch flow, which has its own results view and writes output to
+  /// transient staging paths that would make per-file history entries useless.
+  final bool _shouldRecordHistory;
 
   Stream<ProcessingJob> call(AudioFileRef source, BackgroundProfile profile) async* {
     final jobId = _newId();
@@ -78,13 +85,19 @@ class ApplyProfileUseCase {
         yield job;
       }
       stopwatch.stop();
-      await _recordHistory(job, profile, outputPath, stopwatch.elapsed, JobStatus.success);
+      if (_shouldRecordHistory) {
+        await _recordHistory(
+            job, profile, outputPath, stopwatch.elapsed, JobStatus.success);
+      }
     } catch (error) {
       stopwatch.stop();
       final message = error is Failure ? error.message : const UnknownFailure().message;
       job = job.copyWith(stage: JobStage.failed, errorMessage: message);
       yield job;
-      await _recordHistory(job, profile, outputPath, stopwatch.elapsed, JobStatus.failed);
+      if (_shouldRecordHistory) {
+        await _recordHistory(
+            job, profile, outputPath, stopwatch.elapsed, JobStatus.failed);
+      }
     }
   }
 

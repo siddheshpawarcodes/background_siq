@@ -1,16 +1,16 @@
-import 'package:background_siq/core/result/result.dart';
-import 'package:background_siq/domain/entities/app_settings.dart';
-import 'package:background_siq/domain/entities/audio_file_ref.dart';
-import 'package:background_siq/domain/entities/audio_meta.dart';
-import 'package:background_siq/domain/entities/background_profile.dart';
-import 'package:background_siq/domain/entities/enums.dart';
-import 'package:background_siq/domain/entities/history_entry.dart';
-import 'package:background_siq/domain/entities/process_request.dart';
-import 'package:background_siq/domain/ports/audio_processor_port.dart';
-import 'package:background_siq/domain/ports/file_system_port.dart';
-import 'package:background_siq/domain/repositories/history_repository.dart';
-import 'package:background_siq/domain/repositories/settings_repository.dart';
-import 'package:background_siq/domain/usecases/apply_profile_usecase.dart';
+import 'package:echobug/core/result/result.dart';
+import 'package:echobug/domain/entities/app_settings.dart';
+import 'package:echobug/domain/entities/audio_file_ref.dart';
+import 'package:echobug/domain/entities/audio_meta.dart';
+import 'package:echobug/domain/entities/background_profile.dart';
+import 'package:echobug/domain/entities/enums.dart';
+import 'package:echobug/domain/entities/history_entry.dart';
+import 'package:echobug/domain/entities/process_request.dart';
+import 'package:echobug/domain/ports/audio_processor_port.dart';
+import 'package:echobug/domain/ports/file_system_port.dart';
+import 'package:echobug/domain/repositories/history_repository.dart';
+import 'package:echobug/domain/repositories/settings_repository.dart';
+import 'package:echobug/domain/usecases/apply_profile_usecase.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _FakeProcessor implements AudioProcessorPort {
@@ -44,7 +44,7 @@ class _FakeFs implements FileSystemPort {
   @override
   Future<Result<String>> resolveOutputPath(
           {required AudioFileRef source, String? preferredDir}) async =>
-      const Result.ok('/out/meeting_WBM.mp3');
+      const Result.ok('/out/meeting_EchoBug.mp3');
 }
 
 class _FakeSettings implements SettingsRepository {
@@ -101,7 +101,7 @@ void main() {
   test('emits completed with output path and records success history', () async {
     final jobs = await useCase.call(source, profile).toList();
     expect(jobs.last.stage, JobStage.completed);
-    expect(jobs.last.outputPath, '/out/meeting_WBM.mp3');
+    expect(jobs.last.outputPath, '/out/meeting_EchoBug.mp3');
     expect(history.added.single.status, JobStatus.success);
   });
 

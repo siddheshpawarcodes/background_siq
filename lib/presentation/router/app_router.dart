@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/account/edit_profile_screen.dart';
+import '../features/auth/login_screen.dart';
 import '../features/batch/batch_screen.dart';
+import '../features/dataset_batch/dataset_batch_screen.dart';
 import '../features/history/history_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/processing/processing_screen.dart';
@@ -19,6 +22,9 @@ abstract class Routes {
   static const processing = '/processing'; // + /:jobId
   static const profileEdit = '/profiles/edit'; // + /:id (optional)
   static const batch = '/batch';
+  static const datasetBatch = '/dataset-batch';
+  static const login = '/login'; // Google sign-in / sign-up
+  static const editProfile = '/account/edit'; // user profile editor
 }
 
 final _rootKey = GlobalKey<NavigatorState>();
@@ -90,6 +96,21 @@ final GoRouter appRouter = GoRouter(
       path: Routes.batch,
       parentNavigatorKey: _rootKey,
       builder: (context, state) => const BatchScreen(),
+    ),
+    GoRoute(
+      path: Routes.datasetBatch,
+      parentNavigatorKey: _rootKey,
+      builder: (context, state) => const DatasetBatchScreen(),
+    ),
+    GoRoute(
+      path: Routes.login,
+      parentNavigatorKey: _rootKey,
+      builder: (context, state) => const LoginScreen(),
+    ),
+    GoRoute(
+      path: Routes.editProfile,
+      parentNavigatorKey: _rootKey,
+      builder: (context, state) => const EditProfileScreen(),
     ),
   ],
 );

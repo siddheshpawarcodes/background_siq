@@ -3,11 +3,11 @@
 // Drives the real wizard: name -> music -> calibration sample -> calibrate,
 // renders a live preview, iterates a setting, previews again, then saves —
 // verifying the persisted profile carries the new calibration fields.
-import 'package:background_siq/core/di/bootstrap.dart';
-import 'package:background_siq/core/di/repository_providers.dart';
-import 'package:background_siq/presentation/app.dart';
-import 'package:background_siq/presentation/features/profile_wizard/calibration_preview_controller.dart';
-import 'package:background_siq/presentation/features/profile_wizard/profile_wizard_controller.dart';
+import 'package:echobug/core/di/bootstrap.dart';
+import 'package:echobug/core/di/repository_providers.dart';
+import 'package:echobug/presentation/app.dart';
+import 'package:echobug/presentation/features/profile_wizard/calibration_preview_controller.dart';
+import 'package:echobug/presentation/features/profile_wizard/profile_wizard_controller.dart';
 import 'package:ffmpeg_kit_flutter_new/ffmpeg_kit.dart';
 import 'package:ffmpeg_kit_flutter_new/return_code.dart';
 import 'package:flutter/material.dart';
@@ -51,7 +51,7 @@ void main() {
     }
 
     await tester.pumpWidget(
-      UncontrolledProviderScope(container: container, child: const WbmApp()),
+      UncontrolledProviderScope(container: container, child: const EchoBugApp()),
     );
     await tester.pumpAndSettle();
 

@@ -32,13 +32,14 @@ class ProfileModelAdapter extends TypeAdapter<ProfileModel> {
       modifiedDate: fields[12] as DateTime,
       description: fields[13] as String?,
       calibrationVoiceSamplePath: fields[14] as String?,
+      coverImagePath: fields[15] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, ProfileModel obj) {
     writer
-      ..writeByte(15)
+      ..writeByte(16)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -68,7 +69,9 @@ class ProfileModelAdapter extends TypeAdapter<ProfileModel> {
       ..writeByte(13)
       ..write(obj.description)
       ..writeByte(14)
-      ..write(obj.calibrationVoiceSamplePath);
+      ..write(obj.calibrationVoiceSamplePath)
+      ..writeByte(15)
+      ..write(obj.coverImagePath);
   }
 
   @override

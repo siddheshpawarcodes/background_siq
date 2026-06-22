@@ -1,7 +1,7 @@
-# Window Background Music (WBM) — SRS & Architecture Design
+# EchoBug — SRS & Architecture Design
 
 **Document status:** DRAFT FOR REVIEW — no implementation code is to be written until this is approved.
-**Project codename:** `background_siq` (Flutter package name)
+**Project codename:** `echobug` (Flutter package name)
 **Target platforms:** **Mobile only — Android + iOS.** (Desktop Windows/macOS explicitly out of scope. Architecture stays clean enough to add desktop later if ever needed, but no desktop work is planned or built.)
 **Last updated:** 2026-06-15
 
@@ -35,13 +35,13 @@ This is the design-first deliverable. It covers all 16 required deliverables:
 ## 1. Software Requirements Specification (SRS)
 
 ### 1.1 Purpose
-WBM is a 100% offline desktop/mobile Flutter app that mixes a spoken-voice recording with a
+EchoBug is a 100% offline desktop/mobile Flutter app that mixes a spoken-voice recording with a
 background-music track and produces a broadcast-quality output file. All processing is local;
 no network, cloud, API key, account, or subscription is ever required or used.
 
 ### 1.2 Scope
 The app ingests a single voice recording, applies a deterministic 9-step audio pipeline driven
-by a reusable **Background Music Profile**, and exports a processed file named `<source>_WBM.<ext>`.
+by a reusable **Background Music Profile**, and exports a processed file named `<source>_EchoBug.<ext>`.
 Profiles, settings, recent files, and processing history persist locally via Hive.
 
 ### 1.3 Definitions
@@ -56,7 +56,7 @@ Profiles, settings, recent files, and processing history persist locally via Hiv
 - **FR-3** Apply → run the full pipeline with zero further interaction.
 - **FR-4** Show stepwise progress with percentage.
 - **FR-5** Save output beside the source when permitted; else to the configured output folder.
-- **FR-6** Append `_WBM` suffix; preserve the container extension (or the profile's export format — see §3.1).
+- **FR-6** Append `_EchoBug` suffix; preserve the container extension (or the profile's export format — see §3.1).
 - **FR-7** CRUD + duplicate profiles.
 - **FR-8** 15-second local preview using full profile settings.
 - **FR-9** Persist profiles, preferences, recent files, settings, history.
@@ -85,7 +85,7 @@ Profiles, settings, recent files, and processing history persist locally via Hiv
 ```
 ┌─────────┐   ┌──────────────┐   ┌────────────────┐   ┌────────┐   ┌────────────┐   ┌──────────┐
 │  Open   │──▶│ Pick voice   │──▶│ Pick profile   │──▶│ Apply  │──▶│ Processing │──▶│ Output   │
-│  app    │   │ file         │   │ (dropdown)     │   │ button │   │ progress   │   │ _WBM file│
+│  app    │   │ file         │   │ (dropdown)     │   │ button │   │ progress   │   │ _EchoBug file│
 └─────────┘   └──────────────┘   └────────────────┘   └────────┘   └────────────┘   └──────────┘
                                          │
                                          └── optional ── Preview (first 15 s) ──▶ in-app playback
@@ -114,8 +114,8 @@ Execution order is fixed:
 Exact filter graphs are in §10.
 
 ### 3.1 Output format & naming resolution — **DECIDED: mirror source extension**
-- File is named `<basename>_WBM.<source-ext>`. The output **container/extension always mirrors the source**
-  (`meeting.mp3 → meeting_WBM.mp3`, `training.wav → training_WBM.wav`). ✅ matches spec examples literally.
+- File is named `<basename>_EchoBug.<source-ext>`. The output **container/extension always mirrors the source**
+  (`meeting.mp3 → meeting_EchoBug.mp3`, `training.wav → training_EchoBug.wav`). ✅ matches spec examples literally.
 - The profile's **export format** then selects the **codec + quality tier within that container**:
   - source container natively matches a tier → use it (`.mp3`→libmp3lame 320, `.m4a/.aac`→AAC 256, `.wav`→pcm_s24le).
   - source container does not match the profile's format (e.g. `.mp3` source + WAV-lossless profile) →
@@ -186,7 +186,7 @@ Clean Architecture, dependencies point inward (Presentation → Domain ← Data;
 lib/
 ├── main.dart                          # bootstrap: Hive init, ProviderScope, router
 ├── core/
-│   ├── constants/                     # supported formats, suffix "_WBM", defaults
+│   ├── constants/                     # supported formats, suffix "_EchoBug", defaults
 │   ├── errors/                        # Failure hierarchy, AppException
 │   ├── result/                        # Result<T>/Either alias (fpdart or custom)
 │   ├── theme/                         # ThemeData light/dark, design tokens
@@ -446,7 +446,7 @@ ffmpeg -i voice.ext -stream_loop -1 -i music.ext -filter_complex "
   [ducked][v_mix]amix=inputs=2:duration=first:dropout_transition=0[mixed];
   [mixed]afade=t=in:st=0:d=3,afade=t=out:st=<dur-3>:d=3,
          loudnorm=I=-16:TP=-1.5:LRA=11[out]
-" -map "[out]" <encoder-args> output_WBM.<ext>
+" -map "[out]" <encoder-args> output_EchoBug.<ext>
 ```
 - `-stream_loop -1` loops the music; `amix=duration=first` trims to the voice length.
 - `asplit` feeds the voice both to the mix and to the side-chain key.
@@ -570,7 +570,7 @@ FFmpeg invoked with local paths only. (NFR-1.)
 | **P0 Foundations** | pubspec deps, codegen setup, `core/` (Failure, Result, theme, logger, DI), Hive bootstrap, go_router shell | App builds & runs on Android + iOS with empty screens |
 | **P1 Domain + Data** | Entities, enums, repository interfaces, Hive models+adapters, repo impls, seed default profiles | Profiles persist; unit tests on mappers/repos green |
 | **P2 Profiles UX** | Profiles list + Profile editor + Settings + theme | Full CRUD/duplicate; settings persist |
-| **P3 Audio engine** | `AudioProcessorPort`, FFmpeg-fork backend (Android first), `FilterGraphBuilder`, probe service, isolate runner, storage permissions | Voice-only + music-mix render produces valid `_WBM` file on Android |
+| **P3 Audio engine** | `AudioProcessorPort`, FFmpeg-fork backend (Android first), `FilterGraphBuilder`, probe service, isolate runner, storage permissions | Voice-only + music-mix render produces valid `_EchoBug` file on Android |
 | **P4 Pipeline complete** | Ducking, fades, two-pass loudnorm, all export formats, progress mapping | All 9 steps verified by listening + loudnorm measurement |
 | **P5 Apply flow + Processing UI** | Home selection, Apply, stage/% UI, output save+naming, auto-open | End-to-end primary flow on Android |
 | **P6 Preview** | 15 s render + in-app playback | Preview matches full-render character |
