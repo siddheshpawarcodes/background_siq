@@ -22,7 +22,12 @@ mixin _$BackgroundProfile {
  int get musicVolume;// 0..100 — level of the background music
  NoiseLevel get noiseReduction; bool get voiceEnhancementEnabled; DuckingStrength get ducking; double get fadeInSeconds;// 0..10
  double get fadeOutSeconds;// 0..10
- bool get normalizationEnabled; ExportFormat get exportFormat; DateTime get createdDate; DateTime get modifiedDate;
+// Tone EQ applied to the voice/audio track. Each band is gain in dB
+// (-12..12); 0 is a no-op, so the default profile adds no EQ filter.
+ double get eqBassDb; double get eqMidDb; double get eqTrebleDb; bool get normalizationEnabled; ExportFormat get exportFormat;// Encoder bitrate (kbps) for lossy output containers (mp3/aac/ogg). Null
+// keeps the per-codec default (mp3 320, aac 256, ogg q6); lossless
+// containers (wav/flac) ignore it.
+ int? get audioBitrateKbps; DateTime get createdDate; DateTime get modifiedDate;
 /// Create a copy of BackgroundProfile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -35,16 +40,16 @@ $BackgroundProfileCopyWith<BackgroundProfile> get copyWith => _$BackgroundProfil
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is BackgroundProfile&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.musicFilePath, musicFilePath) || other.musicFilePath == musicFilePath)&&(identical(other.coverImagePath, coverImagePath) || other.coverImagePath == coverImagePath)&&(identical(other.calibrationVoiceSamplePath, calibrationVoiceSamplePath) || other.calibrationVoiceSamplePath == calibrationVoiceSamplePath)&&(identical(other.voiceVolume, voiceVolume) || other.voiceVolume == voiceVolume)&&(identical(other.musicVolume, musicVolume) || other.musicVolume == musicVolume)&&(identical(other.noiseReduction, noiseReduction) || other.noiseReduction == noiseReduction)&&(identical(other.voiceEnhancementEnabled, voiceEnhancementEnabled) || other.voiceEnhancementEnabled == voiceEnhancementEnabled)&&(identical(other.ducking, ducking) || other.ducking == ducking)&&(identical(other.fadeInSeconds, fadeInSeconds) || other.fadeInSeconds == fadeInSeconds)&&(identical(other.fadeOutSeconds, fadeOutSeconds) || other.fadeOutSeconds == fadeOutSeconds)&&(identical(other.normalizationEnabled, normalizationEnabled) || other.normalizationEnabled == normalizationEnabled)&&(identical(other.exportFormat, exportFormat) || other.exportFormat == exportFormat)&&(identical(other.createdDate, createdDate) || other.createdDate == createdDate)&&(identical(other.modifiedDate, modifiedDate) || other.modifiedDate == modifiedDate));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is BackgroundProfile&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.musicFilePath, musicFilePath) || other.musicFilePath == musicFilePath)&&(identical(other.coverImagePath, coverImagePath) || other.coverImagePath == coverImagePath)&&(identical(other.calibrationVoiceSamplePath, calibrationVoiceSamplePath) || other.calibrationVoiceSamplePath == calibrationVoiceSamplePath)&&(identical(other.voiceVolume, voiceVolume) || other.voiceVolume == voiceVolume)&&(identical(other.musicVolume, musicVolume) || other.musicVolume == musicVolume)&&(identical(other.noiseReduction, noiseReduction) || other.noiseReduction == noiseReduction)&&(identical(other.voiceEnhancementEnabled, voiceEnhancementEnabled) || other.voiceEnhancementEnabled == voiceEnhancementEnabled)&&(identical(other.ducking, ducking) || other.ducking == ducking)&&(identical(other.fadeInSeconds, fadeInSeconds) || other.fadeInSeconds == fadeInSeconds)&&(identical(other.fadeOutSeconds, fadeOutSeconds) || other.fadeOutSeconds == fadeOutSeconds)&&(identical(other.eqBassDb, eqBassDb) || other.eqBassDb == eqBassDb)&&(identical(other.eqMidDb, eqMidDb) || other.eqMidDb == eqMidDb)&&(identical(other.eqTrebleDb, eqTrebleDb) || other.eqTrebleDb == eqTrebleDb)&&(identical(other.normalizationEnabled, normalizationEnabled) || other.normalizationEnabled == normalizationEnabled)&&(identical(other.exportFormat, exportFormat) || other.exportFormat == exportFormat)&&(identical(other.audioBitrateKbps, audioBitrateKbps) || other.audioBitrateKbps == audioBitrateKbps)&&(identical(other.createdDate, createdDate) || other.createdDate == createdDate)&&(identical(other.modifiedDate, modifiedDate) || other.modifiedDate == modifiedDate));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,description,musicFilePath,coverImagePath,calibrationVoiceSamplePath,voiceVolume,musicVolume,noiseReduction,voiceEnhancementEnabled,ducking,fadeInSeconds,fadeOutSeconds,normalizationEnabled,exportFormat,createdDate,modifiedDate);
+int get hashCode => Object.hashAll([runtimeType,id,name,description,musicFilePath,coverImagePath,calibrationVoiceSamplePath,voiceVolume,musicVolume,noiseReduction,voiceEnhancementEnabled,ducking,fadeInSeconds,fadeOutSeconds,eqBassDb,eqMidDb,eqTrebleDb,normalizationEnabled,exportFormat,audioBitrateKbps,createdDate,modifiedDate]);
 
 @override
 String toString() {
-  return 'BackgroundProfile(id: $id, name: $name, description: $description, musicFilePath: $musicFilePath, coverImagePath: $coverImagePath, calibrationVoiceSamplePath: $calibrationVoiceSamplePath, voiceVolume: $voiceVolume, musicVolume: $musicVolume, noiseReduction: $noiseReduction, voiceEnhancementEnabled: $voiceEnhancementEnabled, ducking: $ducking, fadeInSeconds: $fadeInSeconds, fadeOutSeconds: $fadeOutSeconds, normalizationEnabled: $normalizationEnabled, exportFormat: $exportFormat, createdDate: $createdDate, modifiedDate: $modifiedDate)';
+  return 'BackgroundProfile(id: $id, name: $name, description: $description, musicFilePath: $musicFilePath, coverImagePath: $coverImagePath, calibrationVoiceSamplePath: $calibrationVoiceSamplePath, voiceVolume: $voiceVolume, musicVolume: $musicVolume, noiseReduction: $noiseReduction, voiceEnhancementEnabled: $voiceEnhancementEnabled, ducking: $ducking, fadeInSeconds: $fadeInSeconds, fadeOutSeconds: $fadeOutSeconds, eqBassDb: $eqBassDb, eqMidDb: $eqMidDb, eqTrebleDb: $eqTrebleDb, normalizationEnabled: $normalizationEnabled, exportFormat: $exportFormat, audioBitrateKbps: $audioBitrateKbps, createdDate: $createdDate, modifiedDate: $modifiedDate)';
 }
 
 
@@ -55,7 +60,7 @@ abstract mixin class $BackgroundProfileCopyWith<$Res>  {
   factory $BackgroundProfileCopyWith(BackgroundProfile value, $Res Function(BackgroundProfile) _then) = _$BackgroundProfileCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, String? description, String? musicFilePath, String? coverImagePath, String? calibrationVoiceSamplePath, int voiceVolume, int musicVolume, NoiseLevel noiseReduction, bool voiceEnhancementEnabled, DuckingStrength ducking, double fadeInSeconds, double fadeOutSeconds, bool normalizationEnabled, ExportFormat exportFormat, DateTime createdDate, DateTime modifiedDate
+ String id, String name, String? description, String? musicFilePath, String? coverImagePath, String? calibrationVoiceSamplePath, int voiceVolume, int musicVolume, NoiseLevel noiseReduction, bool voiceEnhancementEnabled, DuckingStrength ducking, double fadeInSeconds, double fadeOutSeconds, double eqBassDb, double eqMidDb, double eqTrebleDb, bool normalizationEnabled, ExportFormat exportFormat, int? audioBitrateKbps, DateTime createdDate, DateTime modifiedDate
 });
 
 
@@ -72,7 +77,7 @@ class _$BackgroundProfileCopyWithImpl<$Res>
 
 /// Create a copy of BackgroundProfile
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? description = freezed,Object? musicFilePath = freezed,Object? coverImagePath = freezed,Object? calibrationVoiceSamplePath = freezed,Object? voiceVolume = null,Object? musicVolume = null,Object? noiseReduction = null,Object? voiceEnhancementEnabled = null,Object? ducking = null,Object? fadeInSeconds = null,Object? fadeOutSeconds = null,Object? normalizationEnabled = null,Object? exportFormat = null,Object? createdDate = null,Object? modifiedDate = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? description = freezed,Object? musicFilePath = freezed,Object? coverImagePath = freezed,Object? calibrationVoiceSamplePath = freezed,Object? voiceVolume = null,Object? musicVolume = null,Object? noiseReduction = null,Object? voiceEnhancementEnabled = null,Object? ducking = null,Object? fadeInSeconds = null,Object? fadeOutSeconds = null,Object? eqBassDb = null,Object? eqMidDb = null,Object? eqTrebleDb = null,Object? normalizationEnabled = null,Object? exportFormat = null,Object? audioBitrateKbps = freezed,Object? createdDate = null,Object? modifiedDate = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -87,9 +92,13 @@ as NoiseLevel,voiceEnhancementEnabled: null == voiceEnhancementEnabled ? _self.v
 as bool,ducking: null == ducking ? _self.ducking : ducking // ignore: cast_nullable_to_non_nullable
 as DuckingStrength,fadeInSeconds: null == fadeInSeconds ? _self.fadeInSeconds : fadeInSeconds // ignore: cast_nullable_to_non_nullable
 as double,fadeOutSeconds: null == fadeOutSeconds ? _self.fadeOutSeconds : fadeOutSeconds // ignore: cast_nullable_to_non_nullable
+as double,eqBassDb: null == eqBassDb ? _self.eqBassDb : eqBassDb // ignore: cast_nullable_to_non_nullable
+as double,eqMidDb: null == eqMidDb ? _self.eqMidDb : eqMidDb // ignore: cast_nullable_to_non_nullable
+as double,eqTrebleDb: null == eqTrebleDb ? _self.eqTrebleDb : eqTrebleDb // ignore: cast_nullable_to_non_nullable
 as double,normalizationEnabled: null == normalizationEnabled ? _self.normalizationEnabled : normalizationEnabled // ignore: cast_nullable_to_non_nullable
 as bool,exportFormat: null == exportFormat ? _self.exportFormat : exportFormat // ignore: cast_nullable_to_non_nullable
-as ExportFormat,createdDate: null == createdDate ? _self.createdDate : createdDate // ignore: cast_nullable_to_non_nullable
+as ExportFormat,audioBitrateKbps: freezed == audioBitrateKbps ? _self.audioBitrateKbps : audioBitrateKbps // ignore: cast_nullable_to_non_nullable
+as int?,createdDate: null == createdDate ? _self.createdDate : createdDate // ignore: cast_nullable_to_non_nullable
 as DateTime,modifiedDate: null == modifiedDate ? _self.modifiedDate : modifiedDate // ignore: cast_nullable_to_non_nullable
 as DateTime,
   ));
@@ -176,10 +185,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String? description,  String? musicFilePath,  String? coverImagePath,  String? calibrationVoiceSamplePath,  int voiceVolume,  int musicVolume,  NoiseLevel noiseReduction,  bool voiceEnhancementEnabled,  DuckingStrength ducking,  double fadeInSeconds,  double fadeOutSeconds,  bool normalizationEnabled,  ExportFormat exportFormat,  DateTime createdDate,  DateTime modifiedDate)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String? description,  String? musicFilePath,  String? coverImagePath,  String? calibrationVoiceSamplePath,  int voiceVolume,  int musicVolume,  NoiseLevel noiseReduction,  bool voiceEnhancementEnabled,  DuckingStrength ducking,  double fadeInSeconds,  double fadeOutSeconds,  double eqBassDb,  double eqMidDb,  double eqTrebleDb,  bool normalizationEnabled,  ExportFormat exportFormat,  int? audioBitrateKbps,  DateTime createdDate,  DateTime modifiedDate)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _BackgroundProfile() when $default != null:
-return $default(_that.id,_that.name,_that.description,_that.musicFilePath,_that.coverImagePath,_that.calibrationVoiceSamplePath,_that.voiceVolume,_that.musicVolume,_that.noiseReduction,_that.voiceEnhancementEnabled,_that.ducking,_that.fadeInSeconds,_that.fadeOutSeconds,_that.normalizationEnabled,_that.exportFormat,_that.createdDate,_that.modifiedDate);case _:
+return $default(_that.id,_that.name,_that.description,_that.musicFilePath,_that.coverImagePath,_that.calibrationVoiceSamplePath,_that.voiceVolume,_that.musicVolume,_that.noiseReduction,_that.voiceEnhancementEnabled,_that.ducking,_that.fadeInSeconds,_that.fadeOutSeconds,_that.eqBassDb,_that.eqMidDb,_that.eqTrebleDb,_that.normalizationEnabled,_that.exportFormat,_that.audioBitrateKbps,_that.createdDate,_that.modifiedDate);case _:
   return orElse();
 
 }
@@ -197,10 +206,10 @@ return $default(_that.id,_that.name,_that.description,_that.musicFilePath,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String? description,  String? musicFilePath,  String? coverImagePath,  String? calibrationVoiceSamplePath,  int voiceVolume,  int musicVolume,  NoiseLevel noiseReduction,  bool voiceEnhancementEnabled,  DuckingStrength ducking,  double fadeInSeconds,  double fadeOutSeconds,  bool normalizationEnabled,  ExportFormat exportFormat,  DateTime createdDate,  DateTime modifiedDate)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String? description,  String? musicFilePath,  String? coverImagePath,  String? calibrationVoiceSamplePath,  int voiceVolume,  int musicVolume,  NoiseLevel noiseReduction,  bool voiceEnhancementEnabled,  DuckingStrength ducking,  double fadeInSeconds,  double fadeOutSeconds,  double eqBassDb,  double eqMidDb,  double eqTrebleDb,  bool normalizationEnabled,  ExportFormat exportFormat,  int? audioBitrateKbps,  DateTime createdDate,  DateTime modifiedDate)  $default,) {final _that = this;
 switch (_that) {
 case _BackgroundProfile():
-return $default(_that.id,_that.name,_that.description,_that.musicFilePath,_that.coverImagePath,_that.calibrationVoiceSamplePath,_that.voiceVolume,_that.musicVolume,_that.noiseReduction,_that.voiceEnhancementEnabled,_that.ducking,_that.fadeInSeconds,_that.fadeOutSeconds,_that.normalizationEnabled,_that.exportFormat,_that.createdDate,_that.modifiedDate);case _:
+return $default(_that.id,_that.name,_that.description,_that.musicFilePath,_that.coverImagePath,_that.calibrationVoiceSamplePath,_that.voiceVolume,_that.musicVolume,_that.noiseReduction,_that.voiceEnhancementEnabled,_that.ducking,_that.fadeInSeconds,_that.fadeOutSeconds,_that.eqBassDb,_that.eqMidDb,_that.eqTrebleDb,_that.normalizationEnabled,_that.exportFormat,_that.audioBitrateKbps,_that.createdDate,_that.modifiedDate);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -217,10 +226,10 @@ return $default(_that.id,_that.name,_that.description,_that.musicFilePath,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String? description,  String? musicFilePath,  String? coverImagePath,  String? calibrationVoiceSamplePath,  int voiceVolume,  int musicVolume,  NoiseLevel noiseReduction,  bool voiceEnhancementEnabled,  DuckingStrength ducking,  double fadeInSeconds,  double fadeOutSeconds,  bool normalizationEnabled,  ExportFormat exportFormat,  DateTime createdDate,  DateTime modifiedDate)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String? description,  String? musicFilePath,  String? coverImagePath,  String? calibrationVoiceSamplePath,  int voiceVolume,  int musicVolume,  NoiseLevel noiseReduction,  bool voiceEnhancementEnabled,  DuckingStrength ducking,  double fadeInSeconds,  double fadeOutSeconds,  double eqBassDb,  double eqMidDb,  double eqTrebleDb,  bool normalizationEnabled,  ExportFormat exportFormat,  int? audioBitrateKbps,  DateTime createdDate,  DateTime modifiedDate)?  $default,) {final _that = this;
 switch (_that) {
 case _BackgroundProfile() when $default != null:
-return $default(_that.id,_that.name,_that.description,_that.musicFilePath,_that.coverImagePath,_that.calibrationVoiceSamplePath,_that.voiceVolume,_that.musicVolume,_that.noiseReduction,_that.voiceEnhancementEnabled,_that.ducking,_that.fadeInSeconds,_that.fadeOutSeconds,_that.normalizationEnabled,_that.exportFormat,_that.createdDate,_that.modifiedDate);case _:
+return $default(_that.id,_that.name,_that.description,_that.musicFilePath,_that.coverImagePath,_that.calibrationVoiceSamplePath,_that.voiceVolume,_that.musicVolume,_that.noiseReduction,_that.voiceEnhancementEnabled,_that.ducking,_that.fadeInSeconds,_that.fadeOutSeconds,_that.eqBassDb,_that.eqMidDb,_that.eqTrebleDb,_that.normalizationEnabled,_that.exportFormat,_that.audioBitrateKbps,_that.createdDate,_that.modifiedDate);case _:
   return null;
 
 }
@@ -232,7 +241,7 @@ return $default(_that.id,_that.name,_that.description,_that.musicFilePath,_that.
 @JsonSerializable()
 
 class _BackgroundProfile implements BackgroundProfile {
-  const _BackgroundProfile({required this.id, required this.name, this.description, this.musicFilePath, this.coverImagePath, this.calibrationVoiceSamplePath, this.voiceVolume = 100, this.musicVolume = 20, this.noiseReduction = NoiseLevel.medium, this.voiceEnhancementEnabled = true, this.ducking = DuckingStrength.medium, this.fadeInSeconds = 0.0, this.fadeOutSeconds = 0.0, this.normalizationEnabled = true, this.exportFormat = ExportFormat.mp3, required this.createdDate, required this.modifiedDate});
+  const _BackgroundProfile({required this.id, required this.name, this.description, this.musicFilePath, this.coverImagePath, this.calibrationVoiceSamplePath, this.voiceVolume = 100, this.musicVolume = 20, this.noiseReduction = NoiseLevel.medium, this.voiceEnhancementEnabled = true, this.ducking = DuckingStrength.medium, this.fadeInSeconds = 0.0, this.fadeOutSeconds = 0.0, this.eqBassDb = 0.0, this.eqMidDb = 0.0, this.eqTrebleDb = 0.0, this.normalizationEnabled = true, this.exportFormat = ExportFormat.mp3, this.audioBitrateKbps, required this.createdDate, required this.modifiedDate});
   factory _BackgroundProfile.fromJson(Map<String, dynamic> json) => _$BackgroundProfileFromJson(json);
 
 @override final  String id;
@@ -255,8 +264,17 @@ class _BackgroundProfile implements BackgroundProfile {
 // 0..10
 @override@JsonKey() final  double fadeOutSeconds;
 // 0..10
+// Tone EQ applied to the voice/audio track. Each band is gain in dB
+// (-12..12); 0 is a no-op, so the default profile adds no EQ filter.
+@override@JsonKey() final  double eqBassDb;
+@override@JsonKey() final  double eqMidDb;
+@override@JsonKey() final  double eqTrebleDb;
 @override@JsonKey() final  bool normalizationEnabled;
 @override@JsonKey() final  ExportFormat exportFormat;
+// Encoder bitrate (kbps) for lossy output containers (mp3/aac/ogg). Null
+// keeps the per-codec default (mp3 320, aac 256, ogg q6); lossless
+// containers (wav/flac) ignore it.
+@override final  int? audioBitrateKbps;
 @override final  DateTime createdDate;
 @override final  DateTime modifiedDate;
 
@@ -273,16 +291,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _BackgroundProfile&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.musicFilePath, musicFilePath) || other.musicFilePath == musicFilePath)&&(identical(other.coverImagePath, coverImagePath) || other.coverImagePath == coverImagePath)&&(identical(other.calibrationVoiceSamplePath, calibrationVoiceSamplePath) || other.calibrationVoiceSamplePath == calibrationVoiceSamplePath)&&(identical(other.voiceVolume, voiceVolume) || other.voiceVolume == voiceVolume)&&(identical(other.musicVolume, musicVolume) || other.musicVolume == musicVolume)&&(identical(other.noiseReduction, noiseReduction) || other.noiseReduction == noiseReduction)&&(identical(other.voiceEnhancementEnabled, voiceEnhancementEnabled) || other.voiceEnhancementEnabled == voiceEnhancementEnabled)&&(identical(other.ducking, ducking) || other.ducking == ducking)&&(identical(other.fadeInSeconds, fadeInSeconds) || other.fadeInSeconds == fadeInSeconds)&&(identical(other.fadeOutSeconds, fadeOutSeconds) || other.fadeOutSeconds == fadeOutSeconds)&&(identical(other.normalizationEnabled, normalizationEnabled) || other.normalizationEnabled == normalizationEnabled)&&(identical(other.exportFormat, exportFormat) || other.exportFormat == exportFormat)&&(identical(other.createdDate, createdDate) || other.createdDate == createdDate)&&(identical(other.modifiedDate, modifiedDate) || other.modifiedDate == modifiedDate));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _BackgroundProfile&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.musicFilePath, musicFilePath) || other.musicFilePath == musicFilePath)&&(identical(other.coverImagePath, coverImagePath) || other.coverImagePath == coverImagePath)&&(identical(other.calibrationVoiceSamplePath, calibrationVoiceSamplePath) || other.calibrationVoiceSamplePath == calibrationVoiceSamplePath)&&(identical(other.voiceVolume, voiceVolume) || other.voiceVolume == voiceVolume)&&(identical(other.musicVolume, musicVolume) || other.musicVolume == musicVolume)&&(identical(other.noiseReduction, noiseReduction) || other.noiseReduction == noiseReduction)&&(identical(other.voiceEnhancementEnabled, voiceEnhancementEnabled) || other.voiceEnhancementEnabled == voiceEnhancementEnabled)&&(identical(other.ducking, ducking) || other.ducking == ducking)&&(identical(other.fadeInSeconds, fadeInSeconds) || other.fadeInSeconds == fadeInSeconds)&&(identical(other.fadeOutSeconds, fadeOutSeconds) || other.fadeOutSeconds == fadeOutSeconds)&&(identical(other.eqBassDb, eqBassDb) || other.eqBassDb == eqBassDb)&&(identical(other.eqMidDb, eqMidDb) || other.eqMidDb == eqMidDb)&&(identical(other.eqTrebleDb, eqTrebleDb) || other.eqTrebleDb == eqTrebleDb)&&(identical(other.normalizationEnabled, normalizationEnabled) || other.normalizationEnabled == normalizationEnabled)&&(identical(other.exportFormat, exportFormat) || other.exportFormat == exportFormat)&&(identical(other.audioBitrateKbps, audioBitrateKbps) || other.audioBitrateKbps == audioBitrateKbps)&&(identical(other.createdDate, createdDate) || other.createdDate == createdDate)&&(identical(other.modifiedDate, modifiedDate) || other.modifiedDate == modifiedDate));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,description,musicFilePath,coverImagePath,calibrationVoiceSamplePath,voiceVolume,musicVolume,noiseReduction,voiceEnhancementEnabled,ducking,fadeInSeconds,fadeOutSeconds,normalizationEnabled,exportFormat,createdDate,modifiedDate);
+int get hashCode => Object.hashAll([runtimeType,id,name,description,musicFilePath,coverImagePath,calibrationVoiceSamplePath,voiceVolume,musicVolume,noiseReduction,voiceEnhancementEnabled,ducking,fadeInSeconds,fadeOutSeconds,eqBassDb,eqMidDb,eqTrebleDb,normalizationEnabled,exportFormat,audioBitrateKbps,createdDate,modifiedDate]);
 
 @override
 String toString() {
-  return 'BackgroundProfile(id: $id, name: $name, description: $description, musicFilePath: $musicFilePath, coverImagePath: $coverImagePath, calibrationVoiceSamplePath: $calibrationVoiceSamplePath, voiceVolume: $voiceVolume, musicVolume: $musicVolume, noiseReduction: $noiseReduction, voiceEnhancementEnabled: $voiceEnhancementEnabled, ducking: $ducking, fadeInSeconds: $fadeInSeconds, fadeOutSeconds: $fadeOutSeconds, normalizationEnabled: $normalizationEnabled, exportFormat: $exportFormat, createdDate: $createdDate, modifiedDate: $modifiedDate)';
+  return 'BackgroundProfile(id: $id, name: $name, description: $description, musicFilePath: $musicFilePath, coverImagePath: $coverImagePath, calibrationVoiceSamplePath: $calibrationVoiceSamplePath, voiceVolume: $voiceVolume, musicVolume: $musicVolume, noiseReduction: $noiseReduction, voiceEnhancementEnabled: $voiceEnhancementEnabled, ducking: $ducking, fadeInSeconds: $fadeInSeconds, fadeOutSeconds: $fadeOutSeconds, eqBassDb: $eqBassDb, eqMidDb: $eqMidDb, eqTrebleDb: $eqTrebleDb, normalizationEnabled: $normalizationEnabled, exportFormat: $exportFormat, audioBitrateKbps: $audioBitrateKbps, createdDate: $createdDate, modifiedDate: $modifiedDate)';
 }
 
 
@@ -293,7 +311,7 @@ abstract mixin class _$BackgroundProfileCopyWith<$Res> implements $BackgroundPro
   factory _$BackgroundProfileCopyWith(_BackgroundProfile value, $Res Function(_BackgroundProfile) _then) = __$BackgroundProfileCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String? description, String? musicFilePath, String? coverImagePath, String? calibrationVoiceSamplePath, int voiceVolume, int musicVolume, NoiseLevel noiseReduction, bool voiceEnhancementEnabled, DuckingStrength ducking, double fadeInSeconds, double fadeOutSeconds, bool normalizationEnabled, ExportFormat exportFormat, DateTime createdDate, DateTime modifiedDate
+ String id, String name, String? description, String? musicFilePath, String? coverImagePath, String? calibrationVoiceSamplePath, int voiceVolume, int musicVolume, NoiseLevel noiseReduction, bool voiceEnhancementEnabled, DuckingStrength ducking, double fadeInSeconds, double fadeOutSeconds, double eqBassDb, double eqMidDb, double eqTrebleDb, bool normalizationEnabled, ExportFormat exportFormat, int? audioBitrateKbps, DateTime createdDate, DateTime modifiedDate
 });
 
 
@@ -310,7 +328,7 @@ class __$BackgroundProfileCopyWithImpl<$Res>
 
 /// Create a copy of BackgroundProfile
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? description = freezed,Object? musicFilePath = freezed,Object? coverImagePath = freezed,Object? calibrationVoiceSamplePath = freezed,Object? voiceVolume = null,Object? musicVolume = null,Object? noiseReduction = null,Object? voiceEnhancementEnabled = null,Object? ducking = null,Object? fadeInSeconds = null,Object? fadeOutSeconds = null,Object? normalizationEnabled = null,Object? exportFormat = null,Object? createdDate = null,Object? modifiedDate = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? description = freezed,Object? musicFilePath = freezed,Object? coverImagePath = freezed,Object? calibrationVoiceSamplePath = freezed,Object? voiceVolume = null,Object? musicVolume = null,Object? noiseReduction = null,Object? voiceEnhancementEnabled = null,Object? ducking = null,Object? fadeInSeconds = null,Object? fadeOutSeconds = null,Object? eqBassDb = null,Object? eqMidDb = null,Object? eqTrebleDb = null,Object? normalizationEnabled = null,Object? exportFormat = null,Object? audioBitrateKbps = freezed,Object? createdDate = null,Object? modifiedDate = null,}) {
   return _then(_BackgroundProfile(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -325,9 +343,13 @@ as NoiseLevel,voiceEnhancementEnabled: null == voiceEnhancementEnabled ? _self.v
 as bool,ducking: null == ducking ? _self.ducking : ducking // ignore: cast_nullable_to_non_nullable
 as DuckingStrength,fadeInSeconds: null == fadeInSeconds ? _self.fadeInSeconds : fadeInSeconds // ignore: cast_nullable_to_non_nullable
 as double,fadeOutSeconds: null == fadeOutSeconds ? _self.fadeOutSeconds : fadeOutSeconds // ignore: cast_nullable_to_non_nullable
+as double,eqBassDb: null == eqBassDb ? _self.eqBassDb : eqBassDb // ignore: cast_nullable_to_non_nullable
+as double,eqMidDb: null == eqMidDb ? _self.eqMidDb : eqMidDb // ignore: cast_nullable_to_non_nullable
+as double,eqTrebleDb: null == eqTrebleDb ? _self.eqTrebleDb : eqTrebleDb // ignore: cast_nullable_to_non_nullable
 as double,normalizationEnabled: null == normalizationEnabled ? _self.normalizationEnabled : normalizationEnabled // ignore: cast_nullable_to_non_nullable
 as bool,exportFormat: null == exportFormat ? _self.exportFormat : exportFormat // ignore: cast_nullable_to_non_nullable
-as ExportFormat,createdDate: null == createdDate ? _self.createdDate : createdDate // ignore: cast_nullable_to_non_nullable
+as ExportFormat,audioBitrateKbps: freezed == audioBitrateKbps ? _self.audioBitrateKbps : audioBitrateKbps // ignore: cast_nullable_to_non_nullable
+as int?,createdDate: null == createdDate ? _self.createdDate : createdDate // ignore: cast_nullable_to_non_nullable
 as DateTime,modifiedDate: null == modifiedDate ? _self.modifiedDate : modifiedDate // ignore: cast_nullable_to_non_nullable
 as DateTime,
   ));

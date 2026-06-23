@@ -90,9 +90,13 @@ class ProfileWizardController
   void setDucking(DuckingStrength v) => _update(state.draft.copyWith(ducking: v));
   void setFadeIn(double v) => _update(state.draft.copyWith(fadeInSeconds: v));
   void setFadeOut(double v) => _update(state.draft.copyWith(fadeOutSeconds: v));
+  void setEqBass(double v) => _update(state.draft.copyWith(eqBassDb: v));
+  void setEqMid(double v) => _update(state.draft.copyWith(eqMidDb: v));
+  void setEqTreble(double v) => _update(state.draft.copyWith(eqTrebleDb: v));
   void setNormalization(bool v) =>
       _update(state.draft.copyWith(normalizationEnabled: v));
   void setFormat(ExportFormat v) => _update(state.draft.copyWith(exportFormat: v));
+  void setBitrate(int? v) => _update(state.draft.copyWith(audioBitrateKbps: v));
 
   // --- Navigation ---
   void goTo(int step) => state = state.copyWith(step: step.clamp(0, WizardStep.count - 1));

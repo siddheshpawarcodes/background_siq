@@ -67,6 +67,39 @@ class CalibrateStep extends ConsumerWidget {
           value: draft.voiceEnhancementEnabled,
           onChanged: ctrl.setEnhancement,
         ),
+        Spacing.sm.verticalSpace,
+        _label(context, 'Tone EQ'),
+        _sliderRow(
+          context,
+          label: 'Bass',
+          display: _db(draft.eqBassDb),
+          value: draft.eqBassDb,
+          min: -12,
+          max: 12,
+          divisions: 24,
+          onChanged: ctrl.setEqBass,
+        ),
+        _sliderRow(
+          context,
+          label: 'Mid',
+          display: _db(draft.eqMidDb),
+          value: draft.eqMidDb,
+          min: -12,
+          max: 12,
+          divisions: 24,
+          onChanged: ctrl.setEqMid,
+        ),
+        _sliderRow(
+          context,
+          label: 'Treble',
+          display: _db(draft.eqTrebleDb),
+          value: draft.eqTrebleDb,
+          min: -12,
+          max: 12,
+          divisions: 24,
+          onChanged: ctrl.setEqTreble,
+        ),
+        Spacing.md.verticalSpace,
         _label(context, 'Ducking'),
         SegmentedButton<DuckingStrength>(
           segments: [
@@ -113,6 +146,20 @@ class CalibrateStep extends ConsumerWidget {
           selected: {draft.exportFormat},
           onSelectionChanged: (s) => ctrl.setFormat(s.first),
         ),
+        if (draft.exportFormat != ExportFormat.wav) ...[
+          Spacing.md.verticalSpace,
+          _label(context, 'Bitrate'),
+          SegmentedButton<int>(
+            segments: const [
+              ButtonSegment(value: 128, label: Text('128k')),
+              ButtonSegment(value: 192, label: Text('192k')),
+              ButtonSegment(value: 256, label: Text('256k')),
+              ButtonSegment(value: 320, label: Text('320k')),
+            ],
+            selected: {_effectiveBitrate(draft)},
+            onSelectionChanged: (s) => ctrl.setBitrate(s.first),
+          ),
+        ],
         Spacing.md.verticalSpace,
         _estimatedOutput(context, draft),
       ],
@@ -206,7 +253,10 @@ class CalibrateStep extends ConsumerWidget {
       'Ducking: ${draft.ducking.label}',
       'Enhance: ${draft.voiceEnhancementEnabled ? 'on' : 'off'}',
       'Normalize: ${draft.normalizationEnabled ? 'on' : 'off'}',
+      if (draft.eqBassDb != 0 || draft.eqMidDb != 0 || draft.eqTrebleDb != 0)
+        'EQ: ${_db(draft.eqBassDb)} / ${_db(draft.eqMidDb)} / ${_db(draft.eqTrebleDb)}',
       'Format: ${draft.exportFormat.label}',
+      if (draft.exportFormat != ExportFormat.wav) 'Bitrate: ${_effectiveBitrate(draft)}k',
     ];
     return Card(
       child: Padding(
@@ -229,6 +279,15 @@ class CalibrateStep extends ConsumerWidget {
         padding: const EdgeInsets.only(bottom: Spacing.sm),
         child: Text(text, style: Theme.of(context).textTheme.titleSmall),
       );
+
+  /// Signed dB display for an EQ band ("+3 dB", "0 dB", "-2 dB").
+  String _db(double v) =>
+      v == 0 ? '0 dB' : '${v > 0 ? '+' : ''}${v.toStringAsFixed(0)} dB';
+
+  /// Bitrate currently in effect for the lossy-format selector: the explicit
+  /// override if set, else the per-codec default the engine would use.
+  int _effectiveBitrate(BackgroundProfile draft) =>
+      draft.audioBitrateKbps ?? (draft.exportFormat == ExportFormat.aac ? 256 : 320);
 
   Widget _sliderRow(
     BuildContext context, {

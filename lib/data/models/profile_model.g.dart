@@ -34,13 +34,17 @@ class ProfileModelAdapter extends TypeAdapter<ProfileModel> {
       description: fields[13] as String?,
       calibrationVoiceSamplePath: fields[14] as String?,
       coverImagePath: fields[16] as String?,
+      eqBassDb: (fields[18] as num?)?.toDouble(),
+      eqMidDb: (fields[19] as num?)?.toDouble(),
+      eqTrebleDb: (fields[20] as num?)?.toDouble(),
+      audioBitrateKbps: (fields[21] as num?)?.toInt(),
     );
   }
 
   @override
   void write(BinaryWriter writer, ProfileModel obj) {
     writer
-      ..writeByte(17)
+      ..writeByte(21)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -74,7 +78,15 @@ class ProfileModelAdapter extends TypeAdapter<ProfileModel> {
       ..writeByte(16)
       ..write(obj.coverImagePath)
       ..writeByte(17)
-      ..write(obj.voiceVolume);
+      ..write(obj.voiceVolume)
+      ..writeByte(18)
+      ..write(obj.eqBassDb)
+      ..writeByte(19)
+      ..write(obj.eqMidDb)
+      ..writeByte(20)
+      ..write(obj.eqTrebleDb)
+      ..writeByte(21)
+      ..write(obj.audioBitrateKbps);
   }
 
   @override

@@ -25,10 +25,14 @@ _BackgroundProfile _$BackgroundProfileFromJson(Map<String, dynamic> json) =>
           DuckingStrength.medium,
       fadeInSeconds: (json['fadeInSeconds'] as num?)?.toDouble() ?? 0.0,
       fadeOutSeconds: (json['fadeOutSeconds'] as num?)?.toDouble() ?? 0.0,
+      eqBassDb: (json['eqBassDb'] as num?)?.toDouble() ?? 0.0,
+      eqMidDb: (json['eqMidDb'] as num?)?.toDouble() ?? 0.0,
+      eqTrebleDb: (json['eqTrebleDb'] as num?)?.toDouble() ?? 0.0,
       normalizationEnabled: json['normalizationEnabled'] as bool? ?? true,
       exportFormat:
           $enumDecodeNullable(_$ExportFormatEnumMap, json['exportFormat']) ??
           ExportFormat.mp3,
+      audioBitrateKbps: (json['audioBitrateKbps'] as num?)?.toInt(),
       createdDate: DateTime.parse(json['createdDate'] as String),
       modifiedDate: DateTime.parse(json['modifiedDate'] as String),
     );
@@ -48,8 +52,12 @@ Map<String, dynamic> _$BackgroundProfileToJson(_BackgroundProfile instance) =>
       'ducking': _$DuckingStrengthEnumMap[instance.ducking]!,
       'fadeInSeconds': instance.fadeInSeconds,
       'fadeOutSeconds': instance.fadeOutSeconds,
+      'eqBassDb': instance.eqBassDb,
+      'eqMidDb': instance.eqMidDb,
+      'eqTrebleDb': instance.eqTrebleDb,
       'normalizationEnabled': instance.normalizationEnabled,
       'exportFormat': _$ExportFormatEnumMap[instance.exportFormat]!,
+      'audioBitrateKbps': instance.audioBitrateKbps,
       'createdDate': instance.createdDate.toIso8601String(),
       'modifiedDate': instance.modifiedDate.toIso8601String(),
     };

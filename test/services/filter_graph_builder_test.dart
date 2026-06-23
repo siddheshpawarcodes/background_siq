@@ -15,8 +15,12 @@ void main() {
     DuckingStrength ducking = DuckingStrength.medium,
     double fadeIn = 0,
     double fadeOut = 0,
+    double eqBass = 0,
+    double eqMid = 0,
+    double eqTreble = 0,
     bool normalize = true,
     ExportFormat format = ExportFormat.mp3,
+    int? bitrate,
   }) =>
       BackgroundProfile(
         id: 'x',
@@ -28,8 +32,12 @@ void main() {
         ducking: ducking,
         fadeInSeconds: fadeIn,
         fadeOutSeconds: fadeOut,
+        eqBassDb: eqBass,
+        eqMidDb: eqMid,
+        eqTrebleDb: eqTreble,
         normalizationEnabled: normalize,
         exportFormat: format,
+        audioBitrateKbps: bitrate,
         createdDate: now,
         modifiedDate: now,
       );
@@ -128,6 +136,66 @@ void main() {
       totalDuration: const Duration(seconds: 60),
     );
     expect(cmd.filterComplex, contains('loudnorm=I=-16.0:TP=-1.5:LRA=11.0'));
+  });
+
+  test('no tone-EQ filter at default (0 dB) — preserves the anull fast path', () {
+    final cmd = builder.build(
+      voicePath: 'voice.wav',
+      outputPath: 'out.wav',
+      profile: profile(
+          noise: NoiseLevel.off, enhance: false, normalize: false, ducking: DuckingStrength.off),
+      totalDuration: const Duration(seconds: 30),
+    );
+    expect(cmd.filterComplex, contains('[0:a]anull[mixed]'));
+  });
+
+  test('emits only the tone-EQ bands that are non-zero', () {
+    final cmd = builder.build(
+      voicePath: 'voice.wav',
+      outputPath: 'out.wav',
+      profile: profile(
+          eqBass: 4,
+          eqTreble: -3,
+          noise: NoiseLevel.off,
+          enhance: false,
+          normalize: false,
+          ducking: DuckingStrength.off),
+      totalDuration: const Duration(seconds: 30),
+    );
+    expect(cmd.filterComplex, contains('equalizer=f=100:t=q:w=1:g=4.0'));
+    expect(cmd.filterComplex, contains('equalizer=f=8000:t=q:w=1:g=-3.0'));
+    // Mid band left at 0 → no 1 kHz band emitted.
+    expect(cmd.filterComplex, isNot(contains('equalizer=f=1000')));
+  });
+
+  test('default bitrate is unchanged (320k mp3 / 256k aac)', () {
+    final mp3 = builder.build(
+      voicePath: 'v.wav', outputPath: 'o.mp3',
+      profile: profile(ducking: DuckingStrength.off),
+      totalDuration: const Duration(seconds: 10));
+    expect(mp3.arguments, containsAllInOrder(['-b:a', '320k']));
+
+    final aac = builder.build(
+      voicePath: 'v.wav', outputPath: 'o.m4a',
+      profile: profile(ducking: DuckingStrength.off),
+      totalDuration: const Duration(seconds: 10));
+    expect(aac.arguments, containsAllInOrder(['-b:a', '256k']));
+  });
+
+  test('honors an explicit bitrate override for lossy formats', () {
+    final mp3 = builder.build(
+      voicePath: 'v.wav', outputPath: 'o.mp3',
+      profile: profile(bitrate: 192, ducking: DuckingStrength.off),
+      totalDuration: const Duration(seconds: 10));
+    expect(mp3.arguments, containsAllInOrder(['-c:a', 'libmp3lame', '-b:a', '192k']));
+
+    // WAV is lossless: bitrate is ignored, encoder stays PCM.
+    final wav = builder.build(
+      voicePath: 'v.wav', outputPath: 'o.wav',
+      profile: profile(bitrate: 192, format: ExportFormat.wav, ducking: DuckingStrength.off),
+      totalDuration: const Duration(seconds: 10));
+    expect(wav.arguments, containsAllInOrder(['-c:a', 'pcm_s24le']));
+    expect(wav.arguments, isNot(contains('192k')));
   });
 
   test('encoder args vary by format', () {

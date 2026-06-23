@@ -89,7 +89,7 @@ class FilterGraphBuilder {
       '-map', mapLabel,
       if (hasCover) ...['-map', '$coverIndex:v'],
       if (trim != null) ...['-t', _seconds(trim)],
-      ..._encoderArgsForExtension(outputPath),
+      ..._encoderArgsForExtension(outputPath, profile),
       if (hasCover) ..._coverArgsForExtension(outputPath),
       outputPath,
     ];
@@ -145,12 +145,34 @@ class FilterGraphBuilder {
         ..add('acompressor=threshold=-18dB:ratio=3:attack=5:release=60:makeup=2');
     }
 
+    // User tone EQ (3 bands). Each band is emitted only when non-zero so the
+    // default profile (all 0 dB) adds nothing — preserving the `anull` fast
+    // path and the existing no-filter behavior.
+    filters.addAll(_eqFilters(profile));
+
     // Final gain on the voice/audio track. Skipped at 100% so the default keeps
     // the original level (and the no-filter `anull` fast path) untouched.
     if (profile.voiceVolume != 100) {
       filters.add('volume=${(profile.voiceVolume / 100).toStringAsFixed(2)}');
     }
     return filters;
+  }
+
+  /// User tone EQ: three peaking bands (low/mid/high) applied to the voice
+  /// track. Centered at 100 Hz / 1 kHz / 8 kHz. Each band is skipped at 0 dB,
+  /// so an un-tweaked profile contributes no filter.
+  List<String> _eqFilters(BackgroundProfile profile) {
+    final bands = <String>[];
+    if (profile.eqBassDb != 0) {
+      bands.add('equalizer=f=100:t=q:w=1:g=${profile.eqBassDb.toStringAsFixed(1)}');
+    }
+    if (profile.eqMidDb != 0) {
+      bands.add('equalizer=f=1000:t=q:w=1:g=${profile.eqMidDb.toStringAsFixed(1)}');
+    }
+    if (profile.eqTrebleDb != 0) {
+      bands.add('equalizer=f=8000:t=q:w=1:g=${profile.eqTrebleDb.toStringAsFixed(1)}');
+    }
+    return bands;
   }
 
   /// Step 5: side-chain ducking parameters by strength.
@@ -189,15 +211,21 @@ class FilterGraphBuilder {
   /// Per the mirror-source decision (SRS §3.1), the output keeps the source
   /// container, so the codec must match that container rather than the
   /// profile's advisory export format.
-  List<String> _encoderArgsForExtension(String outputPath) {
+  List<String> _encoderArgsForExtension(String outputPath, BackgroundProfile profile) {
     final ext = p.extension(outputPath).replaceFirst('.', '').toLowerCase();
+    // Optional per-profile bitrate override for lossy containers. Null keeps the
+    // historical per-codec defaults, so an un-tweaked profile renders identically
+    // to before this control existed.
+    final bitrate = profile.audioBitrateKbps;
     return switch (ext) {
-      'mp3' => ['-c:a', 'libmp3lame', '-b:a', '320k'],
-      'm4a' || 'aac' => ['-c:a', 'aac', '-b:a', '256k', '-movflags', '+faststart'],
+      'mp3' => ['-c:a', 'libmp3lame', '-b:a', '${bitrate ?? 320}k'],
+      'm4a' || 'aac' => ['-c:a', 'aac', '-b:a', '${bitrate ?? 256}k', '-movflags', '+faststart'],
       'wav' => ['-c:a', 'pcm_s24le'],
       'flac' => ['-c:a', 'flac'],
-      'ogg' => ['-c:a', 'libvorbis', '-q:a', '6'],
-      _ => ['-c:a', 'libmp3lame', '-b:a', '320k'], // safe default
+      'ogg' => bitrate != null
+          ? ['-c:a', 'libvorbis', '-b:a', '${bitrate}k']
+          : ['-c:a', 'libvorbis', '-q:a', '6'],
+      _ => ['-c:a', 'libmp3lame', '-b:a', '${bitrate ?? 320}k'], // safe default
     };
   }
 

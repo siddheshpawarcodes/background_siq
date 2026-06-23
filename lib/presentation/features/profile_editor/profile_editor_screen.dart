@@ -159,6 +159,35 @@ class _ProfileEditorScreenState extends ConsumerState<ProfileEditorScreen> {
                 setState(() => _draft = _draft.copyWith(voiceEnhancementEnabled: v)),
           ),
           Spacing.sm.verticalSpace,
+          _label('Tone EQ'),
+          _slider(
+            label: 'Bass',
+            value: _draft.eqBassDb,
+            min: -12,
+            max: 12,
+            divisions: 24,
+            display: _db(_draft.eqBassDb),
+            onChanged: (v) => setState(() => _draft = _draft.copyWith(eqBassDb: v)),
+          ),
+          _slider(
+            label: 'Mid',
+            value: _draft.eqMidDb,
+            min: -12,
+            max: 12,
+            divisions: 24,
+            display: _db(_draft.eqMidDb),
+            onChanged: (v) => setState(() => _draft = _draft.copyWith(eqMidDb: v)),
+          ),
+          _slider(
+            label: 'Treble',
+            value: _draft.eqTrebleDb,
+            min: -12,
+            max: 12,
+            divisions: 24,
+            display: _db(_draft.eqTrebleDb),
+            onChanged: (v) => setState(() => _draft = _draft.copyWith(eqTrebleDb: v)),
+          ),
+          Spacing.md.verticalSpace,
           _label('Ducking'),
           SegmentedButton<DuckingStrength>(
             segments: [
@@ -208,6 +237,21 @@ class _ProfileEditorScreenState extends ConsumerState<ProfileEditorScreen> {
             onSelectionChanged: (s) =>
                 setState(() => _draft = _draft.copyWith(exportFormat: s.first)),
           ),
+          if (_draft.exportFormat != ExportFormat.wav) ...[
+            Spacing.md.verticalSpace,
+            _label('Bitrate'),
+            SegmentedButton<int>(
+              segments: const [
+                ButtonSegment(value: 128, label: Text('128k')),
+                ButtonSegment(value: 192, label: Text('192k')),
+                ButtonSegment(value: 256, label: Text('256k')),
+                ButtonSegment(value: 320, label: Text('320k')),
+              ],
+              selected: {_effectiveBitrate(_draft)},
+              onSelectionChanged: (s) =>
+                  setState(() => _draft = _draft.copyWith(audioBitrateKbps: s.first)),
+            ),
+          ],
           Spacing.xl.verticalSpace,
           FilledButton(
             onPressed: _saving ? null : _save,
@@ -300,6 +344,15 @@ class _ProfileEditorScreenState extends ConsumerState<ProfileEditorScreen> {
         padding: const EdgeInsets.only(bottom: Spacing.sm),
         child: Text(text, style: Theme.of(context).textTheme.titleSmall),
       );
+
+  /// Signed dB display for an EQ band ("+3 dB", "0 dB", "-2 dB").
+  String _db(double v) =>
+      v == 0 ? '0 dB' : '${v > 0 ? '+' : ''}${v.toStringAsFixed(0)} dB';
+
+  /// Bitrate currently in effect for the lossy-format selector: the explicit
+  /// override if set, else the per-codec default the engine would use.
+  int _effectiveBitrate(BackgroundProfile draft) =>
+      draft.audioBitrateKbps ?? (draft.exportFormat == ExportFormat.aac ? 256 : 320);
 
   Widget _slider({
     required String label,

@@ -24,8 +24,17 @@ abstract class BackgroundProfile with _$BackgroundProfile {
     @Default(DuckingStrength.medium) DuckingStrength ducking,
     @Default(0.0) double fadeInSeconds, // 0..10
     @Default(0.0) double fadeOutSeconds, // 0..10
+    // Tone EQ applied to the voice/audio track. Each band is gain in dB
+    // (-12..12); 0 is a no-op, so the default profile adds no EQ filter.
+    @Default(0.0) double eqBassDb,
+    @Default(0.0) double eqMidDb,
+    @Default(0.0) double eqTrebleDb,
     @Default(true) bool normalizationEnabled,
     @Default(ExportFormat.mp3) ExportFormat exportFormat,
+    // Encoder bitrate (kbps) for lossy output containers (mp3/aac/ogg). Null
+    // keeps the per-codec default (mp3 320, aac 256, ogg q6); lossless
+    // containers (wav/flac) ignore it.
+    int? audioBitrateKbps,
     required DateTime createdDate,
     required DateTime modifiedDate,
   }) = _BackgroundProfile;

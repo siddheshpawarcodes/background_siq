@@ -26,6 +26,10 @@ class ProfileModel extends HiveObject {
     this.description,
     this.calibrationVoiceSamplePath,
     this.coverImagePath,
+    this.eqBassDb,
+    this.eqMidDb,
+    this.eqTrebleDb,
+    this.audioBitrateKbps,
   });
 
   @HiveField(0)
@@ -72,4 +76,15 @@ class ProfileModel extends HiveObject {
   // default in the mapper.
   @HiveField(17)
   int? voiceVolume; // 0..100
+  // Fields 18-21 appended for the tone-EQ + bitrate feature. Backward-
+  // compatible: older records read these as null and fall back to the
+  // defaults in the mapper (EQ 0 dB / codec-default bitrate).
+  @HiveField(18)
+  double? eqBassDb; // -12..12
+  @HiveField(19)
+  double? eqMidDb; // -12..12
+  @HiveField(20)
+  double? eqTrebleDb; // -12..12
+  @HiveField(21)
+  int? audioBitrateKbps; // null = per-codec default
 }
