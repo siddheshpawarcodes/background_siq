@@ -8,6 +8,7 @@ import '../../services/dataset/dataset_file_scanner.dart';
 import '../../services/dataset/mirrored_output_file_system.dart';
 import '../../services/platform/media_store_service.dart';
 import '../entities/audio_file_ref.dart';
+import '../entities/background_profile.dart';
 import '../entities/dataset_audio_file.dart';
 import '../entities/dataset_batch_config.dart';
 import '../entities/dataset_batch_progress.dart';
@@ -67,16 +68,31 @@ class ProcessDatasetUseCase {
     List<String>? onlyPaths,
     Set<String> extensions = DatasetFileScanner.defaultExtensions,
   }) async* {
-    // --- Resolve the profile up front. ---
-    final profileResult = await _profiles.getById(config.profileId);
-    final profile = profileResult.valueOrNull;
-    if (profile == null) {
+    // --- Resolve a profile per suffix up front. ---
+    // Each suffix may map to a different profile (and thus different background
+    // music). Distinct profile ids are fetched once and cached. A suffix whose
+    // profile cannot be resolved is left out of [profileBySuffix]; files
+    // matching it are later recorded as per-file failures.
+    final profileBySuffix = <String, BackgroundProfile>{};
+    final resolved = <String, BackgroundProfile?>{};
+    String? firstError;
+    for (final sp in config.suffixProfiles) {
+      if (!resolved.containsKey(sp.profileId)) {
+        final result = await _profiles.getById(sp.profileId);
+        resolved[sp.profileId] = result.valueOrNull;
+        firstError ??= result.failureOrNull?.message;
+      }
+      final profile = resolved[sp.profileId];
+      if (profile != null) profileBySuffix[sp.suffix] = profile;
+    }
+
+    if (profileBySuffix.isEmpty) {
       yield DatasetBatchProgress(
         completed: true,
         failures: [
           DatasetFileFailure(
             filePath: config.rootFolder,
-            error: profileResult.failureOrNull?.message ?? 'Profile not found.',
+            error: firstError ?? 'No profile could be resolved for any suffix.',
           ),
         ],
       );
@@ -93,7 +109,7 @@ class ProcessDatasetUseCase {
       paths = await _scanner
           .scan(
             rootFolder: config.rootFolder,
-            suffixes: config.selectedSuffixes,
+            suffixes: config.suffixes,
             extensions: extensions,
           )
           .toList();
@@ -141,6 +157,26 @@ class ProcessDatasetUseCase {
       if (!await _fileSystem.exists(file.sourcePath)) {
         skipped++;
         processed++;
+        continue;
+      }
+
+      // Route the file to the profile of its matched suffix (longest wins).
+      final suffix = DatasetFileScanner.matchedSuffix(
+        file.sourcePath,
+        config.suffixes,
+        extensions,
+      );
+      final profile = suffix == null ? null : profileBySuffix[suffix];
+      if (profile == null) {
+        failed++;
+        processed++;
+        failures.add(DatasetFileFailure(
+          filePath: file.sourcePath,
+          fileName: fileName,
+          error: suffix == null
+              ? 'No configured suffix matched this file.'
+              : 'No profile available for suffix "$suffix".',
+        ));
         continue;
       }
 

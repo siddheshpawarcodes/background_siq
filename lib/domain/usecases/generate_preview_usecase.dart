@@ -1,4 +1,3 @@
-import '../../core/constants/app_constants.dart';
 import '../../core/result/result.dart';
 import '../entities/audio_file_ref.dart';
 import '../entities/background_profile.dart';
@@ -6,7 +5,8 @@ import '../entities/process_request.dart';
 import '../ports/audio_processor_port.dart';
 import '../ports/file_system_port.dart';
 
-/// Renders a short local preview applying the full profile (SRS §10.5).
+/// Renders a local preview applying the full profile (SRS §10.5). The whole
+/// source is rendered (no trim) so the user can audition the entire result.
 class GeneratePreviewUseCase {
   GeneratePreviewUseCase({
     required AudioProcessorPort processor,
@@ -31,7 +31,6 @@ class GeneratePreviewUseCase {
       source: source,
       profile: profile,
       outputPath: outputPath,
-      trim: AppConstants.previewDuration,
     );
     return _processor.preview(request);
   }

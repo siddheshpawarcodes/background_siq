@@ -61,6 +61,37 @@ class DatasetFileScanner {
         extensions.map((e) => e.toLowerCase()).toSet(),
       );
 
+  /// Returns the suffix from [suffixes] that [path] matches, or null if none.
+  ///
+  /// When a name matches more than one configured suffix (e.g. both `_en` and
+  /// `_gen` match `clip_gen.m4a`), the **longest** suffix wins, so routing each
+  /// file to a suffix's profile is deterministic. Extension matching is
+  /// case-insensitive; suffix matching is exact (case-sensitive), as in [scan].
+  static String? matchedSuffix(
+    String path,
+    Iterable<String> suffixes,
+    Set<String> extensions,
+  ) {
+    final name = p.basename(path);
+    final lowerName = name.toLowerCase();
+    final lowerExts = extensions.map((e) => e.toLowerCase()).toSet();
+    for (final ext in lowerExts) {
+      final tail = '.$ext';
+      if (!lowerName.endsWith(tail)) continue;
+      final nameWithoutExt = name.substring(0, name.length - tail.length);
+      String? best;
+      for (final suffix in suffixes) {
+        if (suffix.isEmpty) continue;
+        if (nameWithoutExt.endsWith(suffix) &&
+            (best == null || suffix.length > best.length)) {
+          best = suffix;
+        }
+      }
+      if (best != null) return best;
+    }
+    return null;
+  }
+
   static bool _matches(
     String path,
     List<String> suffixes,

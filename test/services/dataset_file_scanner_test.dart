@@ -143,4 +143,41 @@ void main() {
           isFalse);
     });
   });
+
+  group('matchedSuffix()', () {
+    test('returns the matched suffix', () {
+      expect(
+          DatasetFileScanner.matchedSuffix(
+              '/x/Amalki_eng.m4a', ['_eng', '_hin'], {'m4a'}),
+          '_eng');
+    });
+
+    test('returns null when nothing matches', () {
+      expect(
+          DatasetFileScanner.matchedSuffix(
+              '/x/Amalki_other.m4a', ['_eng', '_hin'], {'m4a'}),
+          isNull);
+    });
+
+    test('returns null for an unsupported extension', () {
+      expect(
+          DatasetFileScanner.matchedSuffix('/x/Amalki_eng.mp3', ['_eng'],
+              {'m4a'}),
+          isNull);
+    });
+
+    test('longest suffix wins when more than one matches', () {
+      // Both `_en` and `_gen` end this name; the longer suffix is chosen so
+      // routing to a profile is deterministic.
+      expect(
+          DatasetFileScanner.matchedSuffix(
+              '/x/clip_gen.m4a', ['_en', '_gen'], {'m4a'}),
+          '_gen');
+      // Order-independent: same result regardless of how suffixes are listed.
+      expect(
+          DatasetFileScanner.matchedSuffix(
+              '/x/clip_gen.m4a', ['_gen', '_en'], {'m4a'}),
+          '_gen');
+    });
+  });
 }

@@ -20,7 +20,7 @@ class ProfileModelAdapter extends TypeAdapter<ProfileModel> {
       id: fields[0] as String,
       name: fields[1] as String,
       musicFilePath: fields[2] as String?,
-      voiceVolume: (fields[15] as num?)?.toInt(),
+      voiceVolume: (fields[17] as num?)?.toInt(),
       musicVolume: (fields[3] as num).toInt(),
       noiseReductionLevel: (fields[4] as num).toInt(),
       voiceEnhancementEnabled: fields[5] as bool,
@@ -71,10 +71,10 @@ class ProfileModelAdapter extends TypeAdapter<ProfileModel> {
       ..write(obj.description)
       ..writeByte(14)
       ..write(obj.calibrationVoiceSamplePath)
-      ..writeByte(15)
-      ..write(obj.voiceVolume)
       ..writeByte(16)
-      ..write(obj.coverImagePath);
+      ..write(obj.coverImagePath)
+      ..writeByte(17)
+      ..write(obj.voiceVolume);
   }
 
   @override

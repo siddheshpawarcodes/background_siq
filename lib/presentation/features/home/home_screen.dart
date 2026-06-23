@@ -9,6 +9,7 @@ import '../../../core/di/usecase_providers.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/entities/background_profile.dart';
 import '../../router/app_router.dart';
+import '../../shared/audio_seek_bar.dart';
 import '../processing/processing_screen.dart';
 import 'home_controller.dart';
 
@@ -23,6 +24,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final _player = AudioPlayer();
   bool _previewBusy = false;
+  bool _hasPreview = false;
 
   @override
   void dispose() {
@@ -63,6 +65,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
           const SizedBox(height: Spacing.xl),
           _actions(home, profilesAsync.valueOrNull ?? const []),
+          if (_hasPreview) ...[
+            const SizedBox(height: Spacing.md),
+            _previewPlayer(),
+          ],
           const SizedBox(height: Spacing.xl),
           _recents(),
         ],
@@ -146,10 +152,63 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       (path) async {
         await _player.setFilePath(path);
         await _player.play();
+        if (mounted) setState(() => _hasPreview = true);
       },
       (failure) async => ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(failure.message))),
     );
+  }
+
+  /// Player shown once a preview has rendered: a play/pause toggle plus a
+  /// scrub bar so the user can audition the whole result back and forth.
+  Widget _previewPlayer() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(Spacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            StreamBuilder<PlayerState>(
+              stream: _player.playerStateStream,
+              builder: (context, snap) {
+                final playing = snap.data?.playing ?? false;
+                return Row(
+                  children: [
+                    IconButton(
+                      iconSize: 40,
+                      onPressed: _togglePreviewPlay,
+                      icon: Icon(
+                        playing ? Icons.pause_circle : Icons.play_circle,
+                      ),
+                    ),
+                    const SizedBox(width: Spacing.sm),
+                    Text('Preview',
+                        style: Theme.of(context).textTheme.titleSmall),
+                  ],
+                );
+              },
+            ),
+            AudioSeekBar(
+              positionStream: _player.positionStream,
+              durationStream: _player.durationStream,
+              onSeek: (position) => _player.seek(position),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _togglePreviewPlay() async {
+    if (_player.playing) {
+      await _player.pause();
+    } else {
+      // Restart from the top only when playback has finished; otherwise resume.
+      if (_player.processingState == ProcessingState.completed) {
+        await _player.seek(Duration.zero);
+      }
+      await _player.play();
+    }
   }
 
   void _apply(HomeState home, BackgroundProfile? profile) {

@@ -39,9 +39,9 @@ final calibrationPreviewControllerProvider =
   CalibrationPreviewController.new,
 );
 
-/// Renders a 15 s preview of the draft profile against the calibration sample
-/// and plays it. Cancels any prior render before starting a new one so rapid
-/// iteration never piles up native sessions (design §7, edge E3).
+/// Renders a full-length preview of the draft profile against the calibration
+/// sample and plays it. Cancels any prior render before starting a new one so
+/// rapid iteration never piles up native sessions (design §7, edge E3).
 class CalibrationPreviewController extends AutoDisposeNotifier<PreviewState> {
   late final AudioPlayer _player;
 

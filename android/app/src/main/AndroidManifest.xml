@@ -14,6 +14,14 @@
         android:maxSdkVersion="28"/>
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/>
 
+    <!-- Dataset Batch runs as a foreground service so a long run survives the
+         app being backgrounded / the screen turning off, with an ongoing
+         progress notification. dataSync = the Android 14+ service type for
+         transferring/processing local files. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
     <application
         android:label="EchoBug"
         android:name="${applicationName}"
@@ -41,6 +49,14 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- flutter_foreground_task service. Name must match the plugin's class.
+             foregroundServiceType=dataSync matches the FOREGROUND_SERVICE_DATA_SYNC
+             permission above (required to start a FG service on Android 14+). -->
+        <service
+            android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
+            android:foregroundServiceType="dataSync"
+            android:exported="false" />
+
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

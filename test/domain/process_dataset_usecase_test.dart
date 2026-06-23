@@ -11,6 +11,7 @@ import 'package:echobug/domain/entities/dataset_batch_progress.dart';
 import 'package:echobug/domain/entities/enums.dart';
 import 'package:echobug/domain/entities/history_entry.dart';
 import 'package:echobug/domain/entities/process_request.dart';
+import 'package:echobug/domain/entities/suffix_profile.dart';
 import 'package:echobug/domain/ports/audio_processor_port.dart';
 import 'package:echobug/domain/ports/file_system_port.dart';
 import 'package:echobug/domain/ports/media_store_port.dart';
@@ -117,6 +118,53 @@ class _Profiles implements ProfileRepository {
       const Result.err(ProfileNotFoundFailure());
 }
 
+/// Resolves profiles from a fixed id→profile map (for per-suffix routing).
+class _MultiProfiles implements ProfileRepository {
+  _MultiProfiles(this._byId);
+  final Map<String, BackgroundProfile> _byId;
+
+  @override
+  Future<Result<BackgroundProfile>> getById(String id) async {
+    final p = _byId[id];
+    return p == null
+        ? const Result.err(ProfileNotFoundFailure())
+        : Result.ok(p);
+  }
+
+  @override
+  BackgroundProfile? getByIdSync(String id) => _byId[id];
+  @override
+  Future<List<BackgroundProfile>> getAll() async => _byId.values.toList();
+  @override
+  Stream<List<BackgroundProfile>> watchAll() => Stream.value(_byId.values.toList());
+  @override
+  Future<Result<void>> save(BackgroundProfile p) async => const Result.ok(null);
+  @override
+  Future<Result<void>> delete(String id) async => const Result.ok(null);
+  @override
+  Future<Result<BackgroundProfile>> duplicate(String id) async =>
+      const Result.err(ProfileNotFoundFailure());
+}
+
+/// Records which profile each source path was processed with, so a test can
+/// assert per-suffix routing. Always completes successfully.
+class _RecordingProcessor implements AudioProcessorPort {
+  final Map<String, String> profileIdByPath = {};
+  @override
+  Stream<ProcessingProgress> process(ProcessRequest request) async* {
+    profileIdByPath[request.source.path] = request.profile.id;
+    yield const ProcessingProgress(stage: JobStage.completed, progress: 1);
+  }
+
+  @override
+  Future<Result<String>> preview(ProcessRequest r) async => Result.ok(r.outputPath);
+  @override
+  Future<Result<AudioMeta>> probe(String path) async =>
+      const Result.ok(AudioMeta(duration: Duration(seconds: 10)));
+  @override
+  Future<void> cancel(String jobId) async {}
+}
+
 void main() {
   final profile = BackgroundProfile(
     id: 'p',
@@ -131,8 +179,7 @@ void main() {
 
   const config = DatasetBatchConfig(
     rootFolder: '/data',
-    selectedSuffixes: ['_eng'],
-    profileId: 'p',
+    suffixProfiles: [SuffixProfile(suffix: '_eng', profileId: 'p')],
   );
 
   late _History history;
@@ -171,6 +218,80 @@ void main() {
     expect(last.failedFiles, 0);
     expect(last.overall, 1.0);
     expect(history.added, hasLength(3));
+  });
+
+  test('routes each suffix to its own profile (different music per suffix)',
+      () async {
+    final profileA = profile.copyWith(id: 'a', name: 'A');
+    final profileB = profile.copyWith(id: 'b', name: 'B');
+    final recorder = _RecordingProcessor();
+    final apply = ApplyProfileUseCase(
+      processor: recorder,
+      fileSystem: _Fs(),
+      settings: _Settings(),
+      history: _History(),
+      idGenerator: () => 'id${counter++}',
+    );
+    final usecase = ProcessDatasetUseCase(
+      buildApply: (_) async => apply,
+      profiles: _MultiProfiles({'a': profileA, 'b': profileB}),
+      scanner: const DatasetFileScanner(),
+      fileSystem: _Fs(),
+      mediaStore: _MediaStore(),
+    );
+    const cfg = DatasetBatchConfig(
+      rootFolder: '/data',
+      suffixProfiles: [
+        SuffixProfile(suffix: '_eng', profileId: 'a'),
+        SuffixProfile(suffix: '_hin', profileId: 'b'),
+      ],
+    );
+
+    final last = (await usecase.call(
+      cfg,
+      onlyPaths: ['/data/F/x_eng.m4a', '/data/F/x_hin.m4a'],
+    ).toList())
+        .last;
+
+    expect(last.successfulFiles, 2);
+    expect(recorder.profileIdByPath['/data/F/x_eng.m4a'], 'a');
+    expect(recorder.profileIdByPath['/data/F/x_hin.m4a'], 'b');
+  });
+
+  test('fails only the files whose suffix profile is missing', () async {
+    final profileA = profile.copyWith(id: 'a', name: 'A');
+    final apply = ApplyProfileUseCase(
+      processor: _Processor(),
+      fileSystem: _Fs(),
+      settings: _Settings(),
+      history: _History(),
+      idGenerator: () => 'id${counter++}',
+    );
+    final usecase = ProcessDatasetUseCase(
+      buildApply: (_) async => apply,
+      // '_hin' maps to 'b' which does not resolve.
+      profiles: _MultiProfiles({'a': profileA}),
+      scanner: const DatasetFileScanner(),
+      fileSystem: _Fs(),
+      mediaStore: _MediaStore(),
+    );
+    const cfg = DatasetBatchConfig(
+      rootFolder: '/data',
+      suffixProfiles: [
+        SuffixProfile(suffix: '_eng', profileId: 'a'),
+        SuffixProfile(suffix: '_hin', profileId: 'b'),
+      ],
+    );
+
+    final last = (await usecase.call(
+      cfg,
+      onlyPaths: ['/data/x_eng.m4a', '/data/x_hin.m4a'],
+    ).toList())
+        .last;
+
+    expect(last.successfulFiles, 1);
+    expect(last.failedFiles, 1);
+    expect(last.failures.single.filePath, '/data/x_hin.m4a');
   });
 
   test('a failing file does not abort the rest of the dataset', () async {

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/di/usecase_providers.dart';
 import '../../../domain/entities/dataset_batch_config.dart';
 import '../../../domain/entities/dataset_batch_progress.dart';
+import '../../../domain/entities/suffix_profile.dart';
 import '../../../services/dataset/dataset_batch_cancellation_token.dart';
 import 'dataset_batch_state.dart';
 
@@ -21,9 +22,18 @@ class DatasetBatchController extends Notifier<DatasetBatchState> {
   DatasetBatchCancellationToken? _token;
   final Stopwatch _stopwatch = Stopwatch();
 
+  /// Dedupes notification updates so we refresh roughly once per file rather
+  /// than on every sub-file progress tick.
+  String? _lastNotifKey;
+
   @override
   DatasetBatchState build() {
-    ref.onDispose(() => _sub?.cancel());
+    ref.onDispose(() {
+      _sub?.cancel();
+      // If the controller is torn down mid-run, don't leave a dangling
+      // foreground service / notification behind.
+      unawaited(ref.read(foregroundTaskServiceProvider).stop());
+    });
     return const DatasetBatchState();
   }
 
@@ -35,29 +45,49 @@ class DatasetBatchController extends Notifier<DatasetBatchState> {
     if (path != null) setRootFolder(path);
   }
 
-  /// Adds a suffix to the match set. Trims whitespace and ignores empties and
-  /// duplicates. Returns false if nothing was added.
-  bool addSuffix(String suffix) {
-    final trimmed = suffix.trim();
-    if (trimmed.isEmpty || state.suffixes.contains(trimmed)) return false;
-    state = state.copyWith(suffixes: [...state.suffixes, trimmed]);
-    return true;
+  /// Monotonic id source for [SuffixProfileEntry] rows (stable widget keys).
+  int _nextEntryId = 0;
+
+  /// Appends a new, empty suffix→profile row for the user to fill in.
+  void addEntry() {
+    state = state.copyWith(entries: [
+      ...state.entries,
+      SuffixProfileEntry(id: _nextEntryId++),
+    ]);
   }
 
-  void removeSuffix(String suffix) => state =
-      state.copyWith(suffixes: state.suffixes.where((s) => s != suffix).toList());
+  void removeEntry(int id) => state = state.copyWith(
+      entries: state.entries.where((e) => e.id != id).toList());
 
-  void selectProfile(String id) => state = state.copyWith(profileId: id);
+  void setEntrySuffix(int id, String suffix) => _updateEntry(
+      id, (e) => e.copyWith(suffix: suffix));
+
+  void setEntryProfile(int id, String profileId) => _updateEntry(
+      id, (e) => e.copyWith(profileId: profileId));
+
+  void _updateEntry(int id, SuffixProfileEntry Function(SuffixProfileEntry) f) {
+    state = state.copyWith(
+      entries: [
+        for (final e in state.entries) if (e.id == id) f(e) else e,
+      ],
+    );
+  }
+
+  /// Builds the run config from the completed rows (suffixes trimmed).
+  DatasetBatchConfig _buildConfig() => DatasetBatchConfig(
+        rootFolder: state.rootFolder ?? '',
+        suffixProfiles: [
+          for (final e in state.entries)
+            SuffixProfile(suffix: e.suffix.trim(), profileId: e.profileId!),
+        ],
+      );
 
   /// Starts a fresh run over the whole dataset.
   Future<void> start() async {
     if (!state.canStart) return;
-    final config = DatasetBatchConfig(
-      rootFolder: state.rootFolder!,
-      selectedSuffixes: List.of(state.suffixes),
-      profileId: state.profileId!,
-    );
+    final config = _buildConfig();
     await _ensureStorageAccess();
+    await _startForegroundService();
     _run(config);
   }
 
@@ -65,12 +95,9 @@ class DatasetBatchController extends Notifier<DatasetBatchState> {
   Future<void> retryFailed() async {
     final failures = state.progress?.failures ?? const [];
     if (failures.isEmpty || state.running) return;
-    final config = DatasetBatchConfig(
-      rootFolder: state.rootFolder ?? '',
-      selectedSuffixes: List.of(state.suffixes),
-      profileId: state.profileId ?? '',
-    );
+    final config = _buildConfig();
     await _ensureStorageAccess();
+    await _startForegroundService();
     _run(config, onlyPaths: failures.map((f) => f.filePath).toList());
   }
 
@@ -79,6 +106,39 @@ class DatasetBatchController extends Notifier<DatasetBatchState> {
   /// and the run still completes.
   Future<void> _ensureStorageAccess() =>
       ref.read(storagePermissionServiceProvider).ensurePublicStorageAccess();
+
+  /// Starts the Android foreground service so the run survives backgrounding
+  /// and the user can't accidentally kill it. Best-effort and a no-op off
+  /// Android (the run still proceeds either way).
+  Future<void> _startForegroundService() async {
+    _lastNotifKey = null;
+    await ref.read(foregroundTaskServiceProvider).start(
+          title: 'Processing dataset',
+          text: 'Preparing…',
+        );
+  }
+
+  Future<void> _stopForegroundService() =>
+      ref.read(foregroundTaskServiceProvider).stop();
+
+  /// Refreshes the ongoing notification, but only when the file count or folder
+  /// changes — not on every sub-file progress tick.
+  void _updateNotification(DatasetBatchProgress p) {
+    final String text;
+    if (p.scanning) {
+      text = 'Scanning files…';
+    } else if (p.completed) {
+      return; // The service is stopped on completion; no final update needed.
+    } else {
+      final folder = p.currentFolder == null ? '' : ' • ${p.currentFolder}';
+      text = '${p.processedFiles}/${p.totalFiles} files$folder';
+    }
+    if (text == _lastNotifKey) return;
+    _lastNotifKey = text;
+    unawaited(ref
+        .read(foregroundTaskServiceProvider)
+        .update(title: 'Processing dataset', text: text));
+  }
 
   void _run(DatasetBatchConfig config, {List<String>? onlyPaths}) {
     _sub?.cancel();
@@ -96,17 +156,22 @@ class DatasetBatchController extends Notifier<DatasetBatchState> {
         );
 
     _sub = stream.listen(
-      (progress) => state = state.copyWith(
-        progress: progress,
-        elapsed: _stopwatch.elapsed,
-      ),
+      (progress) {
+        state = state.copyWith(
+          progress: progress,
+          elapsed: _stopwatch.elapsed,
+        );
+        _updateNotification(progress);
+      },
       onDone: () {
         _stopwatch.stop();
         state = state.copyWith(running: false, elapsed: _stopwatch.elapsed);
+        unawaited(_stopForegroundService());
       },
       onError: (_) {
         _stopwatch.stop();
         state = state.copyWith(running: false, elapsed: _stopwatch.elapsed);
+        unawaited(_stopForegroundService());
       },
     );
   }
@@ -117,6 +182,7 @@ class DatasetBatchController extends Notifier<DatasetBatchState> {
   /// Clears the run state (keeps setup inputs) so the user can configure again.
   void reset() {
     _sub?.cancel();
+    unawaited(_stopForegroundService());
     state = state.clearedRun();
   }
 }

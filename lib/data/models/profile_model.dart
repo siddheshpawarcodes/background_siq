@@ -60,12 +60,16 @@ class ProfileModel extends HiveObject {
   String? description;
   @HiveField(14)
   String? calibrationVoiceSamplePath;
-  // Field 15 appended for the audio/voice volume control. Backward-compatible:
-  // older records read this as null and fall back to the default in the mapper.
-  @HiveField(15)
-  int? voiceVolume; // 0..100
   // Field 16 appended for the cover-art (thumbnail) feature. Backward-compatible:
   // older records read this as null (no thumbnail).
   @HiveField(16)
   String? coverImagePath;
+  // Field 17 for the audio/voice volume control. NOTE: index 15 is intentionally
+  // retired and must never be reused — two diverged branches assigned it
+  // different types (String coverImagePath vs. int voiceVolume), so any byte at
+  // index 15 in older records is ambiguous and is left unread. Backward-
+  // compatible: older records read voiceVolume as null and fall back to the
+  // default in the mapper.
+  @HiveField(17)
+  int? voiceVolume; // 0..100
 }

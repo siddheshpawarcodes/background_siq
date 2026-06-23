@@ -18,6 +18,7 @@ import '../../services/profile/profile_transfer_service.dart';
 import '../../services/filesystem/file_pick_service.dart';
 import '../../services/filesystem/file_system_service.dart';
 import '../../services/maintenance/maintenance_service.dart';
+import '../../services/platform/foreground_task_service.dart';
 import '../../services/platform/media_store_service.dart';
 import '../../services/platform/open_file_service.dart';
 import '../../services/platform/storage_permission_service.dart';
@@ -80,6 +81,12 @@ final datasetFileScannerProvider = Provider<DatasetFileScanner>(
 
 final storagePermissionServiceProvider = Provider<StoragePermissionService>(
   (ref) => const StoragePermissionService(),
+);
+
+/// Keeps a dataset run alive in the background via an Android foreground
+/// service + progress notification (no-op off Android).
+final foregroundTaskServiceProvider = Provider<ForegroundTaskService>(
+  (ref) => ForegroundTaskService(),
 );
 
 final mediaStorePortProvider = Provider<MediaStorePort>(

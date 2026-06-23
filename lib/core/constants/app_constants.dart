@@ -54,9 +54,6 @@ class AppConstants {
   /// Default audio (spoken/voice track) volume (percent) for new profiles.
   static const int defaultVoiceVolume = 100;
 
-  /// Preview duration rendered for the 15-second sample.
-  static const Duration previewDuration = Duration(seconds: 15);
-
   /// Maximum number of files in a single batch (SRS §15).
   static const int maxBatchFiles = 50;
 

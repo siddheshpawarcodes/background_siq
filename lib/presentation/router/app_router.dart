@@ -11,10 +11,12 @@ import '../features/processing/processing_screen.dart';
 import '../features/profile_wizard/profile_wizard_screen.dart';
 import '../features/profiles/profiles_screen.dart';
 import '../features/settings/settings_screen.dart';
+import '../features/splash/splash_screen.dart';
 import '../shared/main_shell.dart';
 
 /// Route path constants (SRS §12).
 abstract class Routes {
+  static const splash = '/splash'; // animated launch screen
   static const home = '/';
   static const profiles = '/profiles';
   static const history = '/history';
@@ -33,8 +35,13 @@ final _rootKey = GlobalKey<NavigatorState>();
 /// destinations, plus pushed routes for processing and the profile editor.
 final GoRouter appRouter = GoRouter(
   navigatorKey: _rootKey,
-  initialLocation: Routes.home,
+  initialLocation: Routes.splash,
   routes: [
+    GoRoute(
+      path: Routes.splash,
+      parentNavigatorKey: _rootKey,
+      builder: (context, state) => const SplashScreen(),
+    ),
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) =>
           MainShell(navigationShell: navigationShell),
