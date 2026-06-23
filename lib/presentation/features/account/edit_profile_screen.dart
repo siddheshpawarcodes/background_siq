@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../core/di/auth_providers.dart';
 import '../../../core/di/usecase_providers.dart';
@@ -123,7 +124,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               child: Column(
                 children: [
                   UserAvatar(user: preview, radius: 48),
-                  const SizedBox(height: Spacing.sm),
+                  Spacing.sm.verticalSpace,
                   Wrap(
                     spacing: Spacing.sm,
                     children: [
@@ -143,7 +144,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: Spacing.sm),
+            Spacing.sm.verticalSpace,
             TextFormField(
               controller: _name,
               textCapitalization: TextCapitalization.words,
@@ -154,7 +155,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               validator: (v) =>
                   (v == null || v.trim().isEmpty) ? 'Display name cannot be empty' : null,
             ),
-            const SizedBox(height: Spacing.md),
+            Spacing.md.verticalSpace,
             TextFormField(
               initialValue: user.email,
               readOnly: true,
@@ -164,7 +165,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 prefixIcon: Icon(Icons.email_outlined),
               ),
             ),
-            const SizedBox(height: Spacing.md),
+            Spacing.md.verticalSpace,
             TextFormField(
               controller: _phone,
               keyboardType: TextInputType.phone,
@@ -173,7 +174,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 prefixIcon: Icon(Icons.phone_outlined),
               ),
             ),
-            const SizedBox(height: Spacing.md),
+            Spacing.md.verticalSpace,
             TextFormField(
               controller: _company,
               textCapitalization: TextCapitalization.words,
@@ -182,7 +183,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 prefixIcon: Icon(Icons.business_outlined),
               ),
             ),
-            const SizedBox(height: Spacing.md),
+            Spacing.md.verticalSpace,
             TextFormField(
               controller: _role,
               textCapitalization: TextCapitalization.words,
@@ -191,7 +192,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 prefixIcon: Icon(Icons.badge_outlined),
               ),
             ),
-            const SizedBox(height: Spacing.lg),
+            Spacing.lg.verticalSpace,
             FilledButton(
               onPressed: _saving ? null : _save,
               child: _saving

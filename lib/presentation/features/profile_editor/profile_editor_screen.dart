@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/di/repository_providers.dart';
@@ -107,17 +108,17 @@ class _ProfileEditorScreenState extends ConsumerState<ProfileEditorScreen> {
             ),
             textInputAction: TextInputAction.done,
           ),
-          const SizedBox(height: Spacing.lg),
+          Spacing.lg.verticalSpace,
           _musicPicker(),
-          const SizedBox(height: Spacing.md),
+          Spacing.md.verticalSpace,
           CoverImageCard(
             path: _draft.coverImagePath,
             onPick: _pickCover,
             onClear: () => setState(() => _draft = _draft.copyWith(coverImagePath: null)),
           ),
-          const SizedBox(height: Spacing.lg),
+          Spacing.lg.verticalSpace,
           _coverPicker(),
-          const SizedBox(height: Spacing.lg),
+          Spacing.lg.verticalSpace,
           _slider(
             label: 'Audio volume',
             value: _draft.voiceVolume.toDouble(),
@@ -127,7 +128,7 @@ class _ProfileEditorScreenState extends ConsumerState<ProfileEditorScreen> {
             display: '${_draft.voiceVolume}%',
             onChanged: (v) => setState(() => _draft = _draft.copyWith(voiceVolume: v.round())),
           ),
-          const SizedBox(height: Spacing.md),
+          Spacing.md.verticalSpace,
           _slider(
             label: 'Background music volume',
             value: _draft.musicVolume.toDouble(),
@@ -137,7 +138,7 @@ class _ProfileEditorScreenState extends ConsumerState<ProfileEditorScreen> {
             display: '${_draft.musicVolume}%',
             onChanged: (v) => setState(() => _draft = _draft.copyWith(musicVolume: v.round())),
           ),
-          const SizedBox(height: Spacing.md),
+          Spacing.md.verticalSpace,
           _label('Noise reduction'),
           SegmentedButton<NoiseLevel>(
             segments: [
@@ -148,7 +149,7 @@ class _ProfileEditorScreenState extends ConsumerState<ProfileEditorScreen> {
             onSelectionChanged: (s) =>
                 setState(() => _draft = _draft.copyWith(noiseReduction: s.first)),
           ),
-          const SizedBox(height: Spacing.md),
+          Spacing.md.verticalSpace,
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             title: const Text('Voice enhancement'),
@@ -157,7 +158,7 @@ class _ProfileEditorScreenState extends ConsumerState<ProfileEditorScreen> {
             onChanged: (v) =>
                 setState(() => _draft = _draft.copyWith(voiceEnhancementEnabled: v)),
           ),
-          const SizedBox(height: Spacing.sm),
+          Spacing.sm.verticalSpace,
           _label('Ducking'),
           SegmentedButton<DuckingStrength>(
             segments: [
@@ -168,7 +169,7 @@ class _ProfileEditorScreenState extends ConsumerState<ProfileEditorScreen> {
             onSelectionChanged: (s) =>
                 setState(() => _draft = _draft.copyWith(ducking: s.first)),
           ),
-          const SizedBox(height: Spacing.md),
+          Spacing.md.verticalSpace,
           _slider(
             label: 'Fade in',
             value: _draft.fadeInSeconds,
@@ -187,7 +188,7 @@ class _ProfileEditorScreenState extends ConsumerState<ProfileEditorScreen> {
             display: '${_draft.fadeOutSeconds.toStringAsFixed(1)}s',
             onChanged: (v) => setState(() => _draft = _draft.copyWith(fadeOutSeconds: v)),
           ),
-          const SizedBox(height: Spacing.sm),
+          Spacing.sm.verticalSpace,
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             title: const Text('Loudness normalization'),
@@ -196,7 +197,7 @@ class _ProfileEditorScreenState extends ConsumerState<ProfileEditorScreen> {
             onChanged: (v) =>
                 setState(() => _draft = _draft.copyWith(normalizationEnabled: v)),
           ),
-          const SizedBox(height: Spacing.sm),
+          Spacing.sm.verticalSpace,
           _label('Output format'),
           SegmentedButton<ExportFormat>(
             segments: [
@@ -207,7 +208,7 @@ class _ProfileEditorScreenState extends ConsumerState<ProfileEditorScreen> {
             onSelectionChanged: (s) =>
                 setState(() => _draft = _draft.copyWith(exportFormat: s.first)),
           ),
-          const SizedBox(height: Spacing.xl),
+          Spacing.xl.verticalSpace,
           FilledButton(
             onPressed: _saving ? null : _save,
             child: _saving
@@ -277,7 +278,7 @@ class _ProfileEditorScreenState extends ConsumerState<ProfileEditorScreen> {
               children: [
                 Icon(Icons.info_outline,
                     size: 16, color: Theme.of(context).colorScheme.outline),
-                const SizedBox(width: Spacing.sm),
+                Spacing.sm.horizontalSpace,
                 Expanded(
                   child: Text(
                     'The thumbnail is embedded only when exporting to '

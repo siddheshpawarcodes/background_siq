@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/di/repository_providers.dart';
@@ -57,19 +58,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         padding: const EdgeInsets.all(Spacing.md),
         children: [
           _fileSelector(home),
-          const SizedBox(height: Spacing.md),
+          Spacing.md.verticalSpace,
           profilesAsync.when(
             loading: () => const LinearProgressIndicator(),
             error: (e, _) => Text('Could not load profiles: $e'),
             data: (profiles) => _profileDropdown(profiles, home.profileId),
           ),
-          const SizedBox(height: Spacing.xl),
+          Spacing.xl.verticalSpace,
           _actions(home, profilesAsync.valueOrNull ?? const []),
           if (_hasPreview) ...[
-            const SizedBox(height: Spacing.md),
+            Spacing.md.verticalSpace,
             _previewPlayer(),
           ],
-          const SizedBox(height: Spacing.xl),
+          Spacing.xl.verticalSpace,
           _recents(),
         ],
       ),
@@ -127,7 +128,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             label: const Text('Preview'),
           ),
         ),
-        const SizedBox(width: Spacing.md),
+        Spacing.md.horizontalSpace,
         Expanded(
           flex: 2,
           child: FilledButton.icon(
@@ -180,7 +181,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         playing ? Icons.pause_circle : Icons.play_circle,
                       ),
                     ),
-                    const SizedBox(width: Spacing.sm),
+                    Spacing.sm.horizontalSpace,
                     Text('Preview',
                         style: Theme.of(context).textTheme.titleSmall),
                   ],
@@ -226,7 +227,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Recent files', style: Theme.of(context).textTheme.titleSmall),
-        const SizedBox(height: Spacing.sm),
+        Spacing.sm.verticalSpace,
         for (final f in recents.take(5))
           ListTile(
             dense: true,

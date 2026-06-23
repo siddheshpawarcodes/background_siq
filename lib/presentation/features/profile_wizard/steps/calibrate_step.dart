@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../domain/entities/audio_file_ref.dart';
@@ -37,7 +38,7 @@ class CalibrateStep extends ConsumerWidget {
           divisions: 100,
           onChanged: (v) => ctrl.setVoiceVolume(v.round()),
         ),
-        const SizedBox(height: Spacing.md),
+        Spacing.md.verticalSpace,
         _sliderRow(
           context,
           label: 'Background music volume',
@@ -48,7 +49,7 @@ class CalibrateStep extends ConsumerWidget {
           divisions: 100,
           onChanged: (v) => ctrl.setVolume(v.round()),
         ),
-        const SizedBox(height: Spacing.md),
+        Spacing.md.verticalSpace,
         _label(context, 'Noise reduction'),
         SegmentedButton<NoiseLevel>(
           segments: [
@@ -58,7 +59,7 @@ class CalibrateStep extends ConsumerWidget {
           selected: {draft.noiseReduction},
           onSelectionChanged: (s) => ctrl.setNoise(s.first),
         ),
-        const SizedBox(height: Spacing.md),
+        Spacing.md.verticalSpace,
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
           title: const Text('Voice enhancement'),
@@ -75,7 +76,7 @@ class CalibrateStep extends ConsumerWidget {
           selected: {draft.ducking},
           onSelectionChanged: (s) => ctrl.setDucking(s.first),
         ),
-        const SizedBox(height: Spacing.md),
+        Spacing.md.verticalSpace,
         _sliderRow(
           context,
           label: 'Fade in',
@@ -112,7 +113,7 @@ class CalibrateStep extends ConsumerWidget {
           selected: {draft.exportFormat},
           onSelectionChanged: (s) => ctrl.setFormat(s.first),
         ),
-        const SizedBox(height: Spacing.md),
+        Spacing.md.verticalSpace,
         _estimatedOutput(context, draft),
       ],
     );
@@ -135,7 +136,7 @@ class CalibrateStep extends ConsumerWidget {
           children: [
             Text('Live preview',
                 style: Theme.of(context).textTheme.titleSmall),
-            const SizedBox(height: Spacing.xs),
+            Spacing.xs.verticalSpace,
             Text(
               sample == null
                   ? 'Add a calibration voice sample (Step 3) to preview.'
@@ -143,11 +144,11 @@ class CalibrateStep extends ConsumerWidget {
               style: Theme.of(context).textTheme.bodySmall,
             ),
             if (preview.error != null) ...[
-              const SizedBox(height: Spacing.xs),
+              Spacing.xs.verticalSpace,
               Text(preview.error!,
                   style: TextStyle(color: Theme.of(context).colorScheme.error)),
             ],
-            const SizedBox(height: Spacing.sm),
+            Spacing.sm.verticalSpace,
             Row(
               children: [
                 FilledButton.icon(
@@ -169,7 +170,7 @@ class CalibrateStep extends ConsumerWidget {
                   label: const Text('Preview'),
                 ),
                 if (preview.hasPreview && !preview.generating) ...[
-                  const SizedBox(width: Spacing.sm),
+                  Spacing.sm.horizontalSpace,
                   IconButton(
                     onPressed: () => ref
                         .read(calibrationPreviewControllerProvider.notifier)
@@ -180,7 +181,7 @@ class CalibrateStep extends ConsumerWidget {
               ],
             ),
             if (preview.hasPreview && !preview.generating) ...[
-              const SizedBox(height: Spacing.xs),
+              Spacing.xs.verticalSpace,
               Builder(builder: (context) {
                 final ctrl =
                     ref.read(calibrationPreviewControllerProvider.notifier);
@@ -215,7 +216,7 @@ class CalibrateStep extends ConsumerWidget {
           children: [
             Text('Estimated output settings',
                 style: Theme.of(context).textTheme.titleSmall),
-            const SizedBox(height: Spacing.xs),
+            Spacing.xs.verticalSpace,
             Text(lines.join('  ·  '),
                 style: Theme.of(context).textTheme.bodySmall),
           ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../features/processing/processing_queue_controller.dart';
@@ -45,7 +46,7 @@ class ProcessingBanner extends ConsumerWidget {
                   color: scheme.onPrimaryContainer,
                 ),
               ),
-              const SizedBox(width: Spacing.md),
+              Spacing.md.horizontalSpace,
               Expanded(
                 child: Text(
                   queue.count > 1 ? '$label  (+${queue.count - 1} more)' : label,

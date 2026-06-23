@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/di/usecase_providers.dart';
@@ -63,7 +64,7 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Step ${state.step + 1} of ${WizardStep.count} · ${_titles[state.step]}'),
-                const SizedBox(height: Spacing.xs),
+                Spacing.xs.verticalSpace,
                 LinearProgressIndicator(value: (state.step + 1) / WizardStep.count),
               ],
             ),
@@ -92,7 +93,7 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
             ),
             onChanged: _ctrl.setName,
           ),
-          const SizedBox(height: Spacing.md),
+          Spacing.md.verticalSpace,
           TextField(
             controller: _description,
             decoration: const InputDecoration(
@@ -121,7 +122,7 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
               },
               onClear: () => _ctrl.setMusic(null),
             ),
-            const SizedBox(height: Spacing.md),
+            Spacing.md.verticalSpace,
             _coverCard(coverPath),
           ],
         ),
@@ -166,7 +167,7 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
               children: [
                 Icon(Icons.info_outline,
                     size: 16, color: Theme.of(context).colorScheme.outline),
-                const SizedBox(width: Spacing.sm),
+                Spacing.sm.horizontalSpace,
                 Expanded(
                   child: Text(
                     'The thumbnail is embedded only when exporting to '
@@ -193,7 +194,7 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
               'Pick a sample voice recording. It is used only to calibrate and '
               'preview — it is never part of your exported files.',
             ),
-            const SizedBox(height: Spacing.md),
+            Spacing.md.verticalSpace,
             AudioFileCard(
               icon: Icons.record_voice_over,
               emptyTitle: 'No calibration sample',
@@ -223,7 +224,7 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
                   child: const Text('Back'),
                 ),
               ),
-            if (step > 0) const SizedBox(width: Spacing.md),
+            if (step > 0) Spacing.md.horizontalSpace,
             Expanded(
               flex: 2,
               child: FilledButton(

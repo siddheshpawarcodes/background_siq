@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/di/auth_providers.dart';
@@ -62,13 +63,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 backgroundColor: scheme.primaryContainer,
                 child: Icon(Icons.graphic_eq, size: 40, color: scheme.onPrimaryContainer),
               ),
-              const SizedBox(height: Spacing.lg),
+              Spacing.lg.verticalSpace,
               Text(
                 'Sign in to ${AppConstants.appName}',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
               ),
-              const SizedBox(height: Spacing.sm),
+              Spacing.sm.verticalSpace,
               Text(
                 'Sign in with Google to personalise the app and manage your '
                 'profile. Your details stay on this device.',
@@ -77,15 +78,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
               const Spacer(),
               _GoogleButton(busy: _busy, onPressed: _busy ? null : _signIn),
-              const SizedBox(height: Spacing.md),
+              Spacing.md.verticalSpace,
               Text(
                 'New here? Signing in with Google also creates your account.',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
               ),
-              const SizedBox(height: Spacing.lg),
+              Spacing.lg.verticalSpace,
               _DemoNotice(scheme: scheme, textTheme: theme.textTheme),
-              const SizedBox(height: Spacing.lg),
+              Spacing.lg.verticalSpace,
             ],
           ),
         ),
@@ -135,7 +136,7 @@ class _DemoNotice extends StatelessWidget {
       child: Row(
         children: [
           Icon(Icons.info_outline, size: 20, color: scheme.onSurfaceVariant),
-          const SizedBox(width: Spacing.sm),
+          Spacing.sm.horizontalSpace,
           Expanded(
             child: Text(
               'Demo sign-in: a sample Google account is used. Add OAuth client '

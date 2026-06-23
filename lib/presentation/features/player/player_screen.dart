@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../shared/audio_seek_bar.dart';
@@ -95,12 +96,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Icon(Icons.library_music_outlined, size: 64, color: Colors.white54),
-                const SizedBox(height: Spacing.md),
+                Spacing.md.verticalSpace,
                 Text(
                   'No finished files yet',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white),
                 ),
-                const SizedBox(height: Spacing.xs),
+                Spacing.xs.verticalSpace,
                 const Text(
                   'Process a recording from the Home screen and it will appear here.',
                   textAlign: TextAlign.center,
@@ -138,7 +139,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               ),
             ),
           ),
-          const SizedBox(width: 48), // balances the leading icon
+          48.horizontalSpace, // balances the leading icon
         ],
       ),
     );
@@ -151,17 +152,17 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       child: Column(
         children: [
           Expanded(child: Center(child: _artwork())),
-          const SizedBox(height: Spacing.lg),
+          Spacing.lg.verticalSpace,
           _titleBlock(context, track, state.loading),
-          const SizedBox(height: Spacing.sm),
+          Spacing.sm.verticalSpace,
           AudioSeekBar(
             positionStream: ref.read(playerControllerProvider.notifier).positionStream,
             durationStream: ref.read(playerControllerProvider.notifier).durationStream,
             onSeek: (pos) => ref.read(playerControllerProvider.notifier).seek(pos),
           ),
-          const SizedBox(height: Spacing.xs),
+          Spacing.xs.verticalSpace,
           _controls(context, state),
-          const SizedBox(height: Spacing.md),
+          Spacing.md.verticalSpace,
         ],
       ),
     );
@@ -205,7 +206,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                 ?.copyWith(color: Colors.white, fontWeight: FontWeight.w600),
           ),
         ),
-        const SizedBox(height: Spacing.xs),
+        Spacing.xs.verticalSpace,
         Text(
           track?.subtitle ?? ' ',
           maxLines: 1,

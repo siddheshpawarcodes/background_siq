@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../core/constants/app_constants.dart';
 import '../core/di/app_providers.dart';
@@ -22,13 +23,20 @@ class EchoBugApp extends ConsumerWidget {
       if (enabled != null) AppLogger.setVerbose(enabled);
     });
 
-    return MaterialApp.router(
-      title: AppConstants.appName,
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
-      themeMode: themeMode,
-      routerConfig: appRouter,
+    return ScreenUtilInit(
+      // Base design canvas the UI was laid out against; spacing/sizes scale
+      // relative to this. Adjust if the Figma/reference frame differs.
+      designSize: const Size(375, 812),
+      minTextAdapt: true,
+      splitScreenMode: true,
+      builder: (context, child) => MaterialApp.router(
+        title: AppConstants.appName,
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        themeMode: themeMode,
+        routerConfig: appRouter,
+      ),
     );
   }
 }

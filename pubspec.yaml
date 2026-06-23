@@ -36,6 +36,9 @@ dependencies:
   # State management & DI
   flutter_riverpod: ^2.6.1
 
+  # Responsive sizing (design-size based scaling)
+  flutter_screenutil: ^5.9.3
+
   # Local storage (offline) — Hive Community Edition (maintained fork of Hive)
   hive_ce: ^2.11.0
   hive_ce_flutter: ^2.3.1

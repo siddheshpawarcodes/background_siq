@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/di/repository_providers.dart';
@@ -115,7 +116,7 @@ class _BatchScreenState extends ConsumerState<BatchScreen> {
             ),
           ],
         ),
-        const SizedBox(height: Spacing.sm),
+        Spacing.sm.verticalSpace,
         Expanded(
           child: _files.isEmpty
               ? const Center(child: Text('No files added yet. Tap “Add files”.'))
@@ -133,7 +134,7 @@ class _BatchScreenState extends ConsumerState<BatchScreen> {
                   ),
                 ),
         ),
-        const SizedBox(height: Spacing.md),
+        Spacing.md.verticalSpace,
         DropdownButtonFormField<String>(
           initialValue: _profileId,
           decoration: const InputDecoration(
@@ -145,7 +146,7 @@ class _BatchScreenState extends ConsumerState<BatchScreen> {
           ],
           onChanged: (id) => setState(() => _profileId = id),
         ),
-        const SizedBox(height: Spacing.md),
+        Spacing.md.verticalSpace,
         FilledButton.icon(
           onPressed: (_files.isNotEmpty && selected() != null)
               ? () => _start(selected()!)
@@ -172,20 +173,20 @@ class _BatchScreenState extends ConsumerState<BatchScreen> {
       children: [
         Text('${(pr.overall * 100).toStringAsFixed(0)}% overall',
             style: Theme.of(context).textTheme.headlineSmall),
-        const SizedBox(height: Spacing.sm),
+        Spacing.sm.verticalSpace,
         LinearProgressIndicator(value: pr.overall),
-        const SizedBox(height: Spacing.lg),
+        Spacing.lg.verticalSpace,
         Text('File ${pr.currentIndex + 1} of ${pr.total}',
             style: Theme.of(context).textTheme.titleSmall),
-        const SizedBox(height: Spacing.xs),
+        Spacing.xs.verticalSpace,
         Text(fileName, maxLines: 1, overflow: TextOverflow.ellipsis),
-        const SizedBox(height: Spacing.xs),
+        Spacing.xs.verticalSpace,
         Text(pr.currentStage.label,
             style: TextStyle(color: Theme.of(context).colorScheme.primary)),
-        const SizedBox(height: Spacing.sm),
+        Spacing.sm.verticalSpace,
         LinearProgressIndicator(
             value: pr.currentFileProgress == 0 ? null : pr.currentFileProgress),
-        const SizedBox(height: Spacing.lg),
+        Spacing.lg.verticalSpace,
         Expanded(child: _resultsList(pr)),
       ],
     );
@@ -201,7 +202,7 @@ class _BatchScreenState extends ConsumerState<BatchScreen> {
             child: Row(
               children: [
                 Icon(Icons.task_alt, color: Theme.of(context).colorScheme.primary),
-                const SizedBox(width: Spacing.md),
+                Spacing.md.horizontalSpace,
                 Expanded(
                   child: Text(
                     'Done — ${pr.successCount} succeeded'
@@ -213,9 +214,9 @@ class _BatchScreenState extends ConsumerState<BatchScreen> {
             ),
           ),
         ),
-        const SizedBox(height: Spacing.md),
+        Spacing.md.verticalSpace,
         Expanded(child: _resultsList(pr)),
-        const SizedBox(height: Spacing.md),
+        Spacing.md.verticalSpace,
         FilledButton(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Done'),

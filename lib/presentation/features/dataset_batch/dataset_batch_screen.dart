@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../core/di/repository_providers.dart';
 import '../../../core/theme/app_theme.dart';
@@ -60,7 +61,7 @@ class _DatasetBatchScreenState extends ConsumerState<DatasetBatchScreen> {
       children: [
         Text('Dataset folder',
             style: Theme.of(context).textTheme.titleSmall),
-        const SizedBox(height: Spacing.xs),
+        Spacing.xs.verticalSpace,
         Card(
           child: ListTile(
             leading: const Icon(Icons.folder_outlined),
@@ -72,16 +73,16 @@ class _DatasetBatchScreenState extends ConsumerState<DatasetBatchScreen> {
             onTap: controller.pickFolder,
           ),
         ),
-        const SizedBox(height: Spacing.lg),
+        Spacing.lg.verticalSpace,
         Text('Suffixes & background music',
             style: Theme.of(context).textTheme.titleSmall),
-        const SizedBox(height: Spacing.xs),
+        Spacing.xs.verticalSpace,
         Text(
           'Pair each filename suffix (e.g. "_eng") with the profile to apply to '
           'matching files. Files for different suffixes get different music.',
           style: Theme.of(context).textTheme.bodySmall,
         ),
-        const SizedBox(height: Spacing.sm),
+        Spacing.sm.verticalSpace,
         if (state.entries.isEmpty)
           Card(
             child: Padding(
@@ -108,23 +109,23 @@ class _DatasetBatchScreenState extends ConsumerState<DatasetBatchScreen> {
                 onRemove: () => controller.removeEntry(entry.id),
               ),
             ),
-        const SizedBox(height: Spacing.xs),
+        Spacing.xs.verticalSpace,
         OutlinedButton.icon(
           onPressed: controller.addEntry,
           icon: const Icon(Icons.add),
           label: const Text('Add suffix'),
         ),
         if (duplicates.isNotEmpty) ...[
-          const SizedBox(height: Spacing.sm),
+          Spacing.sm.verticalSpace,
           _hint(
             'Duplicate suffix: ${duplicates.join(', ')}. Each suffix must be '
             'unique.',
             isError: true,
           ),
         ],
-        const SizedBox(height: Spacing.lg),
+        Spacing.lg.verticalSpace,
         _outputLocationNote(),
-        const SizedBox(height: Spacing.xl),
+        Spacing.xl.verticalSpace,
         FilledButton.icon(
           onPressed: state.canStart ? controller.start : null,
           icon: const Icon(Icons.play_arrow),
@@ -141,7 +142,7 @@ class _DatasetBatchScreenState extends ConsumerState<DatasetBatchScreen> {
       children: [
         Icon(isError ? Icons.error_outline : Icons.info_outline,
             size: 16, color: isError ? scheme.error : scheme.onSurfaceVariant),
-        const SizedBox(width: Spacing.xs),
+        Spacing.xs.horizontalSpace,
         Expanded(
           child: Text(
             text,
@@ -167,20 +168,20 @@ class _DatasetBatchScreenState extends ConsumerState<DatasetBatchScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(Icons.save_alt, size: 20, color: scheme.primary),
-            const SizedBox(width: Spacing.sm),
+            Spacing.sm.horizontalSpace,
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Where files are saved',
                       style: textTheme.labelLarge),
-                  const SizedBox(height: Spacing.xs),
+                  Spacing.xs.verticalSpace,
                   Text(
                     'Processed files go to Music/EchoBug, keeping your original '
                     'folder layout. Each file gets the "_echobug" suffix.',
                     style: textTheme.bodySmall,
                   ),
-                  const SizedBox(height: Spacing.xs),
+                  Spacing.xs.verticalSpace,
                   Text(
                     'e.g. music data/Amalki/Amalki_eng.m4a\n'
                     '→ Music/EchoBug/music data/Amalki/Amalki_eng_echobug.m4a',
@@ -204,10 +205,10 @@ class _DatasetBatchScreenState extends ConsumerState<DatasetBatchScreen> {
     if (pr == null || pr.scanning) {
       return Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: const [
-          Center(child: CircularProgressIndicator()),
-          SizedBox(height: Spacing.md),
-          Center(child: Text('Scanning dataset…')),
+        children: [
+          const Center(child: CircularProgressIndicator()),
+          Spacing.md.verticalSpace,
+          const Center(child: Text('Scanning dataset…')),
         ],
       );
     }
@@ -217,28 +218,28 @@ class _DatasetBatchScreenState extends ConsumerState<DatasetBatchScreen> {
       children: [
         Text('${(pr.overall * 100).toStringAsFixed(0)}% overall',
             style: Theme.of(context).textTheme.headlineSmall),
-        const SizedBox(height: Spacing.sm),
+        Spacing.sm.verticalSpace,
         LinearProgressIndicator(value: pr.overall),
-        const SizedBox(height: Spacing.lg),
+        Spacing.lg.verticalSpace,
         if (pr.currentFolder != null) ...[
           Text('Current folder',
               style: Theme.of(context).textTheme.labelMedium),
           Text(pr.currentFolder!,
               maxLines: 1, overflow: TextOverflow.ellipsis),
-          const SizedBox(height: Spacing.sm),
+          Spacing.sm.verticalSpace,
         ],
         if (pr.currentFile != null) ...[
           Text('Current file',
               style: Theme.of(context).textTheme.labelMedium),
           Text(pr.currentFile!, maxLines: 1, overflow: TextOverflow.ellipsis),
-          const SizedBox(height: Spacing.sm),
+          Spacing.sm.verticalSpace,
         ],
         LinearProgressIndicator(
             value: pr.currentFileProgress == 0 ? null : pr.currentFileProgress),
-        const SizedBox(height: Spacing.lg),
+        Spacing.lg.verticalSpace,
         Text('${pr.processedFiles} / ${pr.totalFiles}',
             style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: Spacing.xs),
+        Spacing.xs.verticalSpace,
         _countsRow(pr),
         const Spacer(),
         OutlinedButton.icon(
@@ -264,7 +265,7 @@ class _DatasetBatchScreenState extends ConsumerState<DatasetBatchScreen> {
               children: [
                 Icon(pr.cancelled ? Icons.cancel : Icons.task_alt,
                     color: pr.cancelled ? scheme.error : scheme.primary),
-                const SizedBox(width: Spacing.md),
+                Spacing.md.horizontalSpace,
                 Text(pr.cancelled ? 'Cancelled' : 'Completed',
                     style: Theme.of(context).textTheme.titleMedium),
               ],
@@ -272,7 +273,7 @@ class _DatasetBatchScreenState extends ConsumerState<DatasetBatchScreen> {
           ),
         ),
         if (pr.noMatchReason != null) ...[
-          const SizedBox(height: Spacing.md),
+          Spacing.md.verticalSpace,
           Card(
             color: scheme.errorContainer,
             child: Padding(
@@ -281,7 +282,7 @@ class _DatasetBatchScreenState extends ConsumerState<DatasetBatchScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Icon(Icons.info_outline, color: scheme.onErrorContainer),
-                  const SizedBox(width: Spacing.sm),
+                  Spacing.sm.horizontalSpace,
                   Expanded(
                     child: Text(
                       pr.noMatchReason!,
@@ -295,7 +296,7 @@ class _DatasetBatchScreenState extends ConsumerState<DatasetBatchScreen> {
             ),
           ),
         ],
-        const SizedBox(height: Spacing.md),
+        Spacing.md.verticalSpace,
         _summaryRow('Total files', '${pr.totalFiles}'),
         _summaryRow('Processed', '${pr.processedFiles}'),
         _summaryRow('Successful', '${pr.successfulFiles}'),
@@ -303,12 +304,12 @@ class _DatasetBatchScreenState extends ConsumerState<DatasetBatchScreen> {
         _summaryRow('Skipped', '${pr.skippedFiles}'),
         _summaryRow('Duration', _formatDuration(elapsed)),
         if (pr.successfulFiles > 0) ...[
-          const SizedBox(height: Spacing.sm),
+          Spacing.sm.verticalSpace,
           Row(
             children: [
               Icon(Icons.save_alt,
                   size: 18, color: Theme.of(context).colorScheme.primary),
-              const SizedBox(width: Spacing.xs),
+              Spacing.xs.horizontalSpace,
               Expanded(
                 child: Text(
                   'Saved to Music/EchoBug, mirroring your folder layout.',
@@ -319,7 +320,7 @@ class _DatasetBatchScreenState extends ConsumerState<DatasetBatchScreen> {
           ),
         ],
         if (pr.failures.isNotEmpty) ...[
-          const SizedBox(height: Spacing.md),
+          Spacing.md.verticalSpace,
           Card(
             child: ExpansionTile(
               leading: Icon(Icons.error_outline, color: scheme.error),
@@ -336,14 +337,14 @@ class _DatasetBatchScreenState extends ConsumerState<DatasetBatchScreen> {
               ],
             ),
           ),
-          const SizedBox(height: Spacing.md),
+          Spacing.md.verticalSpace,
           OutlinedButton.icon(
             onPressed: controller.retryFailed,
             icon: const Icon(Icons.refresh),
             label: Text('Retry failed files (${pr.failures.length})'),
           ),
         ],
-        const SizedBox(height: Spacing.md),
+        Spacing.md.verticalSpace,
         FilledButton(
           onPressed: controller.reset,
           child: const Text('Process another dataset'),
@@ -357,15 +358,15 @@ class _DatasetBatchScreenState extends ConsumerState<DatasetBatchScreen> {
     return Row(
       children: [
         Icon(Icons.check_circle, size: 18, color: scheme.primary),
-        const SizedBox(width: Spacing.xs),
+        Spacing.xs.horizontalSpace,
         Text('${pr.successfulFiles}'),
-        const SizedBox(width: Spacing.md),
+        Spacing.md.horizontalSpace,
         Icon(Icons.error, size: 18, color: scheme.error),
-        const SizedBox(width: Spacing.xs),
+        Spacing.xs.horizontalSpace,
         Text('${pr.failedFiles}'),
-        const SizedBox(width: Spacing.md),
+        Spacing.md.horizontalSpace,
         const Icon(Icons.skip_next, size: 18),
-        const SizedBox(width: Spacing.xs),
+        Spacing.xs.horizontalSpace,
         Text('${pr.skippedFiles}'),
       ],
     );
@@ -467,7 +468,7 @@ class _SuffixProfileRowState extends State<_SuffixProfileRow> {
             onChanged: widget.onSuffixChanged,
           ),
         ),
-        const SizedBox(width: Spacing.sm),
+        Spacing.sm.horizontalSpace,
         Expanded(
           flex: 4,
           child: DropdownButtonFormField<String>(

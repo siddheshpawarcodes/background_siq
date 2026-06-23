@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../core/di/repository_providers.dart';
 import '../../../core/theme/app_theme.dart';
@@ -137,7 +138,9 @@ class _RecordScreenState extends ConsumerState<RecordScreen> {
   void _processInBackground(BackgroundProfile profile) {
     final path = _recordedPath;
     if (path == null) return;
-    ref.read(processingQueueProvider.notifier).enqueue(_refFor(path, profile), profile);
+    ref
+        .read(processingQueueProvider.notifier)
+        .enqueue(_refFor(path, profile), profile);
     _toast('Added “${profile.name}” edit to the background queue.');
     // Reset so the user can record again immediately; the enqueued edit keeps
     // running in the background (the file lives on its own path).
@@ -164,7 +167,9 @@ class _RecordScreenState extends ConsumerState<RecordScreen> {
 
   void _toast(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   // --- UI ---
@@ -193,18 +198,23 @@ class _RecordScreenState extends ConsumerState<RecordScreen> {
       children: [
         const Spacer(),
         Icon(Icons.graphic_eq, size: 64, color: scheme.primary),
-        const SizedBox(height: Spacing.md),
-        Text('Record a new clip', style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: Spacing.sm),
+        Spacing.md.verticalSpace,
+        Text(
+          'Record a new clip',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        Spacing.sm.verticalSpace,
         Text(
           'Capture audio, preview it, then attach a profile to process in the '
           'background while you record the next one.',
           textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: scheme.outline),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: scheme.outline),
         ),
         const Spacer(),
         _RecordButton(busy: _busy, onTap: _startRecording),
-        const SizedBox(height: Spacing.xl),
+        Spacing.xl.verticalSpace,
       ],
     );
   }
@@ -222,7 +232,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen> {
             style: Theme.of(context).textTheme.displaySmall,
           ),
         ),
-        const SizedBox(height: Spacing.lg),
+        Spacing.lg.verticalSpace,
         Container(
           decoration: BoxDecoration(
             color: scheme.surfaceContainerHigh,
@@ -259,7 +269,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen> {
             ),
           ],
         ),
-        const SizedBox(height: Spacing.xl),
+        Spacing.xl.verticalSpace,
       ],
     );
   }
@@ -273,7 +283,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen> {
     return ListView(
       children: [
         Text('Preview', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: Spacing.sm),
+        Spacing.sm.verticalSpace,
         Card(
           child: Padding(
             padding: const EdgeInsets.all(Spacing.md),
@@ -293,29 +303,36 @@ class _RecordScreenState extends ConsumerState<RecordScreen> {
                     backgroundColor: Colors.transparent,
                   ),
                 ),
-                const SizedBox(height: Spacing.sm),
+                Spacing.sm.verticalSpace,
                 Row(
                   children: [
                     StreamBuilder<PlayerState>(
                       stream: player.onPlayerStateChanged,
                       builder: (context, snap) {
                         final playing =
-                            (snap.data ?? player.playerState) == PlayerState.playing;
+                            (snap.data ?? player.playerState) ==
+                            PlayerState.playing;
                         return IconButton(
                           iconSize: 40,
                           onPressed: _togglePlay,
-                          icon: Icon(playing ? Icons.pause_circle : Icons.play_circle),
+                          icon: Icon(
+                            playing ? Icons.pause_circle : Icons.play_circle,
+                          ),
                         );
                       },
                     ),
-                    const SizedBox(width: Spacing.sm),
+                    Spacing.sm.horizontalSpace,
                     StreamBuilder<int>(
                       stream: player.onCurrentDurationChanged,
                       builder: (context, snap) {
                         final pos = Duration(milliseconds: snap.data ?? 0);
-                        final total = Duration(milliseconds: player.maxDuration);
-                        return Text('${_fmt(pos)} / ${_fmt(total)}',
-                            style: Theme.of(context).textTheme.bodyMedium);
+                        final total = Duration(
+                          milliseconds: player.maxDuration,
+                        );
+                        return Text(
+                          '${_fmt(pos)} / ${_fmt(total)}',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        );
                       },
                     ),
                   ],
@@ -324,13 +341,13 @@ class _RecordScreenState extends ConsumerState<RecordScreen> {
             ),
           ),
         ),
-        const SizedBox(height: Spacing.lg),
+        Spacing.lg.verticalSpace,
         profilesAsync.when(
           loading: () => const LinearProgressIndicator(),
           error: (e, _) => Text('Could not load profiles: $e'),
           data: (profiles) => _profileDropdown(profiles),
         ),
-        const SizedBox(height: Spacing.lg),
+        Spacing.lg.verticalSpace,
         profilesAsync.maybeWhen(
           data: (profiles) => _actions(profiles),
           orElse: () => const SizedBox.shrink(),
@@ -347,7 +364,8 @@ class _RecordScreenState extends ConsumerState<RecordScreen> {
         prefixIcon: Icon(Icons.tune),
       ),
       items: [
-        for (final pr in profiles) DropdownMenuItem(value: pr.id, child: Text(pr.name)),
+        for (final pr in profiles)
+          DropdownMenuItem(value: pr.id, child: Text(pr.name)),
       ],
       onChanged: (id) => setState(() => _profileId = id),
     );
@@ -367,16 +385,18 @@ class _RecordScreenState extends ConsumerState<RecordScreen> {
         Expanded(
           child: OutlinedButton.icon(
             onPressed: _discard,
-            icon: const Icon(Icons.replay),
+            // icon: const Icon(Icons.replay),
             label: const Text('Re-record'),
           ),
         ),
-        const SizedBox(width: Spacing.md),
+        Spacing.md.horizontalSpace,
         Expanded(
           flex: 2,
           child: FilledButton.icon(
-            onPressed: profile == null ? null : () => _processInBackground(profile),
-            icon: const Icon(Icons.auto_fix_high),
+            onPressed: profile == null
+                ? null
+                : () => _processInBackground(profile),
+            // icon: const Icon(Icons.auto_fix_high),
             label: const Text('Process in background'),
           ),
         ),

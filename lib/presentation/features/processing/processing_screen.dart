@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../core/di/repository_providers.dart';
 import '../../../core/di/usecase_providers.dart';
@@ -127,9 +128,9 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('$percent%', style: Theme.of(context).textTheme.displaySmall),
-        const SizedBox(height: Spacing.sm),
+        Spacing.sm.verticalSpace,
         LinearProgressIndicator(value: job?.progress == 0 ? null : job?.progress),
-        const SizedBox(height: Spacing.lg),
+        Spacing.lg.verticalSpace,
         Expanded(
           child: ListView(
             children: [
@@ -219,26 +220,26 @@ class _ResultCard extends StatelessWidget {
             size: 72,
             color: isSuccess ? scheme.primary : scheme.error,
           ),
-          const SizedBox(height: Spacing.md),
+          Spacing.md.verticalSpace,
           Text(
             isSuccess ? 'Completed' : 'Failed',
             style: Theme.of(context).textTheme.headlineSmall,
           ),
-          const SizedBox(height: Spacing.sm),
+          Spacing.sm.verticalSpace,
           if (isSuccess)
             Text('Saved as ${p.basename(outputPath!)}',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium)
           else
             Text(message!, textAlign: TextAlign.center),
-          const SizedBox(height: Spacing.xl),
+          Spacing.xl.verticalSpace,
           if (isSuccess) ...[
             FilledButton.icon(
               onPressed: onOpen,
               icon: const Icon(Icons.open_in_new),
               label: const Text('Open file'),
             ),
-            const SizedBox(height: Spacing.sm),
+            Spacing.sm.verticalSpace,
             TextButton(onPressed: onDone, child: const Text('Done')),
           ] else
             FilledButton(onPressed: onBack, child: const Text('Back')),
