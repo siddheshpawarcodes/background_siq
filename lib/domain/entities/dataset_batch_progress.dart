@@ -18,6 +18,7 @@ class DatasetBatchProgress {
     this.scanning = false,
     this.completed = false,
     this.cancelled = false,
+    this.noMatchReason,
   });
 
   /// Total number of matching files discovered (known after scanning).
@@ -54,6 +55,12 @@ class DatasetBatchProgress {
   /// True when the run stopped early because the user cancelled.
   final bool cancelled;
 
+  /// When a completed run found no files to process, a human-readable reason
+  /// (e.g. the folder couldn't be read, or audio files were found but none
+  /// matched the suffixes). Null whenever files were found or the run is still
+  /// in progress.
+  final String? noMatchReason;
+
   /// Overall completion across the dataset, 0..1, smoothed by the in-flight
   /// file's own progress.
   double get overall {
@@ -74,6 +81,7 @@ class DatasetBatchProgress {
     bool? scanning,
     bool? completed,
     bool? cancelled,
+    String? noMatchReason,
   }) =>
       DatasetBatchProgress(
         totalFiles: totalFiles ?? this.totalFiles,
@@ -88,5 +96,6 @@ class DatasetBatchProgress {
         scanning: scanning ?? this.scanning,
         completed: completed ?? this.completed,
         cancelled: cancelled ?? this.cancelled,
+        noMatchReason: noMatchReason ?? this.noMatchReason,
       );
 }

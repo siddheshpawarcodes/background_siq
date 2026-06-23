@@ -109,6 +109,86 @@ void main() {
     expect(result, hasLength(50));
   });
 
+  group('tolerant matching (real-world filenames)', () {
+    test('matches space-separated language words', () async {
+      await touch('Agnimantha/Agnimantha eng.m4a');
+      await touch('Agnimantha/Agnimantha hindi.m4a');
+      await touch('Agnimantha/Agnimantha san.m4a');
+
+      expect(await scan('eng'), ['Agnimantha eng.m4a']);
+      expect(await scan('hindi'), ['Agnimantha hindi.m4a']);
+      expect(await scan('san'), ['Agnimantha san.m4a']);
+    });
+
+    test('a separator on the typed suffix is ignored (_eng == eng == " eng")',
+        () async {
+      await touch('a/Apamrga eng.m4a');
+      expect(await scan('_eng'), ['Apamrga eng.m4a']);
+      expect(await scan(' eng'), ['Apamrga eng.m4a']);
+      expect(await scan('-eng'), ['Apamrga eng.m4a']);
+    });
+
+    test('matching is case-insensitive on both name and suffix', () async {
+      await touch('a/Bala ENG.m4a');
+      expect(await scan('eng'), ['Bala ENG.m4a']);
+      expect(await scan('ENG'), ['Bala ENG.m4a']);
+    });
+
+    test('hyphen and underscore separators in the name are equivalent',
+        () async {
+      await touch('a/Bilva-eng.m4a');
+      await touch('b/Bilva_eng.m4a');
+      expect(await scan('eng'), ['Bilva-eng.m4a', 'Bilva_eng.m4a']);
+    });
+
+    test('still rejects a longer word sharing the token (whole-word only)',
+        () async {
+      await touch('a/Amalki english.m4a');
+      await touch('a/Amalki eng.m4a');
+      expect(await scan('eng'), ['Amalki eng.m4a']);
+    });
+
+    test('a misspelt language token does not match (must be renamed)',
+        () async {
+      await touch('a/Dhatakai engi.m4a'); // typo: "engi"
+      await touch('a/Ashwagandha hindj.m4a'); // typo: "hindj"
+      expect(await scanMany(['eng', 'hindi', 'san']), isEmpty);
+    });
+  });
+
+  group('scanDetailed() diagnostics', () {
+    test('reports unreadable when the root does not exist', () async {
+      final r = await scanner.scanDetailed(
+          rootFolder: p.join(root.path, 'nope'), suffixes: ['eng']);
+      expect(r.rootReadable, isFalse);
+      expect(r.matchedPaths, isEmpty);
+      expect(r.audioFilesFound, 0);
+    });
+
+    test('separates "audio present but unmatched" from "no audio"', () async {
+      await touch('Agnimantha/Agnimantha eng.m4a');
+      await touch('Agnimantha/Agnimantha hindi.m4a');
+      await touch('Notes/readme.txt');
+
+      // Suffix that matches nothing, though audio files exist.
+      final r = await scanner.scanDetailed(rootFolder: root.path, suffixes: ['_xx']);
+      expect(r.rootReadable, isTrue);
+      expect(r.matchedPaths, isEmpty);
+      expect(r.audioFilesFound, 2);
+      expect(r.sampleAudioNames, isNotEmpty);
+    });
+
+    test('returns matched paths alongside the audio count', () async {
+      await touch('A/A eng.m4a');
+      await touch('A/A hindi.m4a');
+
+      final r = await scanner.scanDetailed(rootFolder: root.path, suffixes: ['eng']);
+      expect(r.rootReadable, isTrue);
+      expect(r.audioFilesFound, 2);
+      expect(r.matchedPaths.map(p.basename), ['A eng.m4a']);
+    });
+  });
+
   group('matchesAny() predicate', () {
     test('accepts exact suffix + extension', () {
       expect(

@@ -151,6 +151,8 @@ class CalibrateStep extends ConsumerWidget {
             Row(
               children: [
                 FilledButton.icon(
+                  // Disabled (greyed out) while a preview renders; no spinner —
+                  // the seek bar + autoplay appear only once rendering completes.
                   onPressed: canPreview
                       ? () => ref
                           .read(calibrationPreviewControllerProvider.notifier)
@@ -163,13 +165,8 @@ class CalibrateStep extends ConsumerWidget {
                             draft,
                           )
                       : null,
-                  icon: preview.generating
-                      ? const SizedBox(
-                          height: 18,
-                          width: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Icon(Icons.play_arrow),
-                  label: Text(preview.generating ? 'Generating…' : 'Preview'),
+                  icon: const Icon(Icons.play_arrow),
+                  label: const Text('Preview'),
                 ),
                 if (preview.hasPreview && !preview.generating) ...[
                   const SizedBox(width: Spacing.sm),

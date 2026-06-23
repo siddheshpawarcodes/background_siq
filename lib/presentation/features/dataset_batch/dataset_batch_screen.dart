@@ -271,6 +271,30 @@ class _DatasetBatchScreenState extends ConsumerState<DatasetBatchScreen> {
             ),
           ),
         ),
+        if (pr.noMatchReason != null) ...[
+          const SizedBox(height: Spacing.md),
+          Card(
+            color: scheme.errorContainer,
+            child: Padding(
+              padding: const EdgeInsets.all(Spacing.md),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.info_outline, color: scheme.onErrorContainer),
+                  const SizedBox(width: Spacing.sm),
+                  Expanded(
+                    child: Text(
+                      pr.noMatchReason!,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: scheme.onErrorContainer,
+                          ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
         const SizedBox(height: Spacing.md),
         _summaryRow('Total files', '${pr.totalFiles}'),
         _summaryRow('Processed', '${pr.processedFiles}'),

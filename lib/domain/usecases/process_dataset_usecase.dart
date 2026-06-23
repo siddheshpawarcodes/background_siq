@@ -103,23 +103,27 @@ class ProcessDatasetUseCase {
     yield const DatasetBatchProgress(scanning: true);
 
     final List<String> paths;
+    DatasetScanResult? scan;
     if (onlyPaths != null) {
       paths = onlyPaths;
     } else {
-      paths = await _scanner
-          .scan(
-            rootFolder: config.rootFolder,
-            suffixes: config.suffixes,
-            extensions: extensions,
-          )
-          .toList();
+      scan = await _scanner.scanDetailed(
+        rootFolder: config.rootFolder,
+        suffixes: config.suffixes,
+        extensions: extensions,
+      );
+      paths = scan.matchedPaths;
     }
 
     final queue = paths.map(_describe).toList();
     final total = queue.length;
 
     if (total == 0) {
-      yield const DatasetBatchProgress(completed: true);
+      yield DatasetBatchProgress(
+        completed: true,
+        noMatchReason:
+            scan == null ? null : _explainNoMatch(scan, config, extensions),
+      );
       return;
     }
 
@@ -267,6 +271,31 @@ class ProcessDatasetUseCase {
     } catch (_) {
       // Best effort — keep the staged file as a fallback.
     }
+  }
+
+  /// Builds the user-facing reason a scan matched zero files, so the screen can
+  /// explain it instead of silently reporting "0 files".
+  String _explainNoMatch(
+    DatasetScanResult scan,
+    DatasetBatchConfig config,
+    Set<String> extensions,
+  ) {
+    if (!scan.rootReadable) {
+      return "Couldn't read the selected folder. On Android 11+ this needs "
+          '"All files access" — grant it when prompted (or in Settings → Apps '
+          '→ EchoBug → Permissions), then start again.';
+    }
+    final extLabel = extensions.map((e) => '.$e').join(', ');
+    if (scan.audioFilesFound == 0) {
+      return 'No $extLabel files were found anywhere under this folder.';
+    }
+    final suffixes =
+        config.suffixes.where((s) => s.trim().isNotEmpty).join(', ');
+    final examples = scan.sampleAudioNames.take(3).join(', ');
+    return 'Found ${scan.audioFilesFound} audio file(s), but none matched your '
+        'suffix(es): $suffixes. Examples found: $examples. A suffix must be the '
+        'last word of the name before the extension (spaces, underscores and '
+        'hyphens count the same, and case is ignored).';
   }
 
   DatasetAudioFile _describe(String sourcePath) {

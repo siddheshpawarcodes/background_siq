@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:echobug/core/errors/failures.dart';
 import 'package:echobug/core/result/result.dart';
@@ -23,6 +24,7 @@ import 'package:echobug/domain/usecases/process_dataset_usecase.dart';
 import 'package:echobug/services/dataset/dataset_batch_cancellation_token.dart';
 import 'package:echobug/services/dataset/dataset_file_scanner.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
 
 /// Fails for any source whose path contains "bad", otherwise completes.
 class _Processor implements AudioProcessorPort {
@@ -382,5 +384,44 @@ void main() {
 
     expect(last.completed, isTrue);
     expect(last.totalFiles, 0);
+  });
+
+  test('explains an unreadable folder when the scan finds nothing', () async {
+    final usecase = build(withProfile: profile);
+    // config.rootFolder is '/data', which does not exist → unreadable.
+    final last = (await usecase.call(config).toList()).last;
+
+    expect(last.completed, isTrue);
+    expect(last.totalFiles, 0);
+    expect(last.noMatchReason, isNotNull);
+    expect(last.noMatchReason, contains('read'));
+  });
+
+  test('explains audio-present-but-unmatched with examples', () async {
+    final dir = await Directory.systemTemp.createTemp('dataset_uc_test');
+    addTearDown(() async {
+      if (await dir.exists()) await dir.delete(recursive: true);
+    });
+    Future<void> touch(String rel) async {
+      final f = File(p.join(dir.path, rel));
+      await f.parent.create(recursive: true);
+      await f.writeAsString('x');
+    }
+
+    await touch('Agnimantha/Agnimantha eng.m4a');
+    await touch('Agnimantha/Agnimantha hindi.m4a');
+
+    final usecase = build(withProfile: profile);
+    // '_xyz' matches none of the files, though audio files are present.
+    final cfg = DatasetBatchConfig(
+      rootFolder: dir.path,
+      suffixProfiles: const [SuffixProfile(suffix: '_xyz', profileId: 'p')],
+    );
+    final last = (await usecase.call(cfg).toList()).last;
+
+    expect(last.totalFiles, 0);
+    expect(last.noMatchReason, isNotNull);
+    expect(last.noMatchReason, contains('2 audio file'));
+    expect(last.noMatchReason, contains('eng.m4a'));
   });
 }

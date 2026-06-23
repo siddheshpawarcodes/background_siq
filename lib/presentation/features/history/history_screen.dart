@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:path/path.dart' as p;
 
 import '../../../core/di/repository_providers.dart';
 import '../../../core/di/usecase_providers.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../domain/entities/enums.dart';
 import '../../../domain/entities/history_entry.dart';
+import '../../router/app_router.dart';
+import '../processing/processing_queue_controller.dart';
 
 /// Processing history — source/output, date, profile, duration, status, with
 /// "reopen exported file" (SRS §11.5).
@@ -31,19 +35,26 @@ class HistoryScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: historyAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Could not load history: $e')),
-        data: (items) {
-          if (items.isEmpty) {
-            return const Center(child: Text('No processing history yet.'));
-          }
-          return ListView.separated(
-            itemCount: items.length,
-            separatorBuilder: (_, _) => const Divider(height: 1),
-            itemBuilder: (context, i) => _HistoryTile(entry: items[i]),
-          );
-        },
+      body: Column(
+        children: [
+          const _ProcessingSection(),
+          Expanded(
+            child: historyAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(child: Text('Could not load history: $e')),
+              data: (items) {
+                if (items.isEmpty) {
+                  return const Center(child: Text('No processing history yet.'));
+                }
+                return ListView.separated(
+                  itemCount: items.length,
+                  separatorBuilder: (_, _) => const Divider(height: 1),
+                  itemBuilder: (context, i) => _HistoryTile(entry: items[i]),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -61,6 +72,71 @@ class HistoryScreen extends ConsumerWidget {
       ),
     );
     if (ok ?? false) await ref.read(historyRepositoryProvider).clear();
+  }
+}
+
+/// Live "Processing" section pinned above the persisted history. Shows each
+/// in-progress / queued background edit with its stage, progress, and a cancel
+/// control. Collapses to nothing when the queue is empty; finished edits drop
+/// out and reappear below as ordinary history entries.
+class _ProcessingSection extends ConsumerWidget {
+  const _ProcessingSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final queue = ref.watch(processingQueueProvider);
+    if (queue.isEmpty) return const SizedBox.shrink();
+
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      color: scheme.surfaceContainerHigh,
+      padding: const EdgeInsets.only(top: Spacing.sm, bottom: Spacing.sm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(Spacing.md, Spacing.xs, Spacing.md, Spacing.xs),
+            child: Text(
+              'Processing (${queue.count})',
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(color: scheme.primary),
+            ),
+          ),
+          for (final job in queue.jobs) _QueuedJobTile(job: job),
+        ],
+      ),
+    );
+  }
+}
+
+class _QueuedJobTile extends ConsumerWidget {
+  const _QueuedJobTile({required this.job});
+
+  final QueuedJob job;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final running = job.isRunning;
+    final subtitle = running ? job.stage.label : 'Queued';
+    return ListTile(
+      dense: true,
+      leading: SizedBox(
+        height: 22,
+        width: 22,
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          value: running && job.progress > 0 ? job.progress : null,
+        ),
+      ),
+      title: Text(job.source.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+      subtitle: Text(
+        running ? '$subtitle · ${(job.progress * 100).round()}%' : subtitle,
+      ),
+      trailing: IconButton(
+        icon: const Icon(Icons.close),
+        tooltip: 'Cancel',
+        onPressed: () => ref.read(processingQueueProvider.notifier).cancel(job.id),
+      ),
+    );
   }
 }
 
@@ -84,14 +160,29 @@ class _HistoryTile extends ConsumerWidget {
         '${entry.processingTime.inSeconds}s',
       ),
       trailing: success
-          ? IconButton(
-              icon: const Icon(Icons.open_in_new),
-              tooltip: 'Open file',
-              onPressed: () => _open(context, ref),
+          ? Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.play_circle_outline),
+                  tooltip: 'Play in app',
+                  onPressed: () => _openPlayer(context),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.open_in_new),
+                  tooltip: 'Open externally',
+                  onPressed: () => _open(context, ref),
+                ),
+              ],
             )
           : null,
-      onTap: success ? () => _open(context, ref) : null,
+      onTap: success ? () => _openPlayer(context) : null,
     );
+  }
+
+  /// Opens the in-app music player starting on this finished file.
+  void _openPlayer(BuildContext context) {
+    context.push(Routes.player, extra: entry.id);
   }
 
   Future<void> _open(BuildContext context, WidgetRef ref) async {

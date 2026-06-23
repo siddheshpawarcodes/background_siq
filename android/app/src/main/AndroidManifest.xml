@@ -22,6 +22,10 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
+    <!-- In-app audio recording (Record tab). RECORD_AUDIO is the runtime grant
+         the audio_waveforms recorder requests before capture begins. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+
     <application
         android:label="EchoBug"
         android:name="${applicationName}"

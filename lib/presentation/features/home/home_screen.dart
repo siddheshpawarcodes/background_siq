@@ -118,13 +118,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       children: [
         Expanded(
           child: OutlinedButton.icon(
+            // Disabled (greyed out) while a preview renders; no spinner — the
+            // seek bar + autoplay appear only once the process completes.
             onPressed: home.canApply && !_previewBusy
                 ? () => _preview(home, selected())
                 : null,
-            icon: _previewBusy
-                ? const SizedBox(
-                    height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Icon(Icons.play_arrow),
+            icon: const Icon(Icons.play_arrow),
             label: const Text('Preview'),
           ),
         ),

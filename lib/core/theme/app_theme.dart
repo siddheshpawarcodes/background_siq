@@ -5,7 +5,10 @@ class AppTheme {
   AppTheme._();
 
   /// Brand seed color — calm, professional blue/teal suited to audio tooling.
-  static const Color _seed = Color(0xFF2E6CF6);
+  /// Public so immersive surfaces (e.g. the music player) can derive their own
+  /// scheme from the same brand color rather than duplicating the literal.
+  static const Color brandSeed = Color(0xFF2E6CF6);
+  static const Color _seed = brandSeed;
 
   static ThemeData get light => _build(Brightness.light);
   static ThemeData get dark => _build(Brightness.dark);

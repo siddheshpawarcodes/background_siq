@@ -2,25 +2,36 @@ import 'dart:io';
 
 import 'package:permission_handler/permission_handler.dart';
 
-/// Requests the storage access needed to publish Dataset Batch output into the
-/// public `Music/` folder.
+/// Requests the storage access the Dataset Batch flow needs to **read** the
+/// user-picked source folder and **write** output into the public `Music/`
+/// folder.
 ///
-/// On Android 10+ (API 29+) writing into a public media collection via
-/// MediaStore needs **no** permission. Only Android 9 and below require the
+/// The folder is chosen via the SAF directory picker, but the scanner reads it
+/// with `dart:io` (`Directory.list`) — and `dart:io` cannot use a SAF tree
+/// grant. On Android 11+ that means reading an arbitrary path requires
+/// **All-files access** (`MANAGE_EXTERNAL_STORAGE`); Android 9 and below use the
 /// legacy `WRITE_EXTERNAL_STORAGE` grant. On non-Android platforms nothing is
-/// needed. This call is best-effort: on modern devices the request is a no-op.
+/// needed.
 class StoragePermissionService {
   const StoragePermissionService();
 
-  /// Returns `true` when public-storage writes are allowed (or not required). A
-  /// `false` result is non-fatal: the dataset flow keeps output in app-private
-  /// storage, so the run still completes — just not visible in `Music/`.
+  /// Returns `true` when storage access is granted (or not required). A `false`
+  /// result is non-fatal for output (the flow falls back to app-private
+  /// storage), but without it the scanner cannot read a folder outside the
+  /// app's own sandbox, so the run will find 0 files.
   Future<bool> ensurePublicStorageAccess() async {
     if (!Platform.isAndroid) return true;
-
-    // No-op on Android 10+ (MediaStore handles it); meaningful only on ≤9,
-    // where this maps to the legacy WRITE_EXTERNAL_STORAGE grant.
-    final status = await Permission.storage.request();
-    return status.isGranted;
+    try {
+      // All-files access is what lets dart:io read an arbitrary picked folder
+      // and write a custom public folder on Android 11+.
+      if (await Permission.manageExternalStorage.isGranted) return true;
+      if ((await Permission.manageExternalStorage.request()).isGranted) {
+        return true;
+      }
+      // Fallback for Android ≤10, where the legacy grant is sufficient.
+      return (await Permission.storage.request()).isGranted;
+    } catch (_) {
+      return false;
+    }
   }
 }
