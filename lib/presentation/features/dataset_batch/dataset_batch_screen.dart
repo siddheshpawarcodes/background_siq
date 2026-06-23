@@ -78,7 +78,7 @@ class _DatasetBatchScreenState extends ConsumerState<DatasetBatchScreen> {
             style: Theme.of(context).textTheme.titleSmall),
         Spacing.xs.verticalSpace,
         Text(
-          'Pair each filename suffix (e.g. "_eng") with the profile to apply to '
+          'Pair each filename suffix (e.g. "_eng") with the backdrop to apply to '
           'matching files. Files for different suffixes get different music.',
           style: Theme.of(context).textTheme.bodySmall,
         ),
@@ -88,7 +88,7 @@ class _DatasetBatchScreenState extends ConsumerState<DatasetBatchScreen> {
             child: Padding(
               padding: const EdgeInsets.all(Spacing.md),
               child: Text(
-                'No suffixes yet. Add one to map it to a background music profile.',
+                'No suffixes yet. Add one to map it to a backdrop.',
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ),
@@ -475,7 +475,7 @@ class _SuffixProfileRowState extends State<_SuffixProfileRow> {
             initialValue: selected,
             isExpanded: true,
             decoration: const InputDecoration(
-              labelText: 'Profile',
+              labelText: 'Backdrop',
               isDense: true,
               prefixIcon: Icon(Icons.tune),
             ),

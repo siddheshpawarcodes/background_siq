@@ -92,7 +92,7 @@ class ProcessDatasetUseCase {
         failures: [
           DatasetFileFailure(
             filePath: config.rootFolder,
-            error: firstError ?? 'No profile could be resolved for any suffix.',
+            error: firstError ?? 'No backdrop could be resolved for any suffix.',
           ),
         ],
       );
@@ -179,7 +179,7 @@ class ProcessDatasetUseCase {
           fileName: fileName,
           error: suffix == null
               ? 'No configured suffix matched this file.'
-              : 'No profile available for suffix "$suffix".',
+              : 'No backdrop available for suffix "$suffix".',
         ));
         continue;
       }

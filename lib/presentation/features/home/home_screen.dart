@@ -61,7 +61,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           Spacing.md.verticalSpace,
           profilesAsync.when(
             loading: () => const LinearProgressIndicator(),
-            error: (e, _) => Text('Could not load profiles: $e'),
+            error: (e, _) => Text('Could not load backdrops: $e'),
             data: (profiles) => _profileDropdown(profiles, home.profileId),
           ),
           Spacing.xl.verticalSpace,
@@ -94,7 +94,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return DropdownButtonFormField<String>(
       initialValue: selectedId,
       decoration: const InputDecoration(
-        labelText: 'Background music profile',
+        labelText: 'Backdrop',
         prefixIcon: Icon(Icons.tune),
       ),
       items: [

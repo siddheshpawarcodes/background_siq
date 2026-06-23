@@ -19,7 +19,7 @@ class ProfileTransferService {
     try {
       final dir = await getTemporaryDirectory();
       final safe = profile.name.isEmpty
-          ? 'profile'
+          ? 'backdrop'
           : profile.name.replaceAll(RegExp(r'[^A-Za-z0-9_-]'), '_');
       final file = File(p.join(dir.path, '$safe.echobugprofile'));
       await file.writeAsString(jsonEncode(profile.toJson()));
@@ -43,7 +43,7 @@ class ProfileTransferService {
       return Result.ok(BackgroundProfile.fromJson(json));
     } catch (e) {
       return Result.err(
-        ValidationFailure('That file is not a valid EchoBug profile.'),
+        ValidationFailure('That file is not a valid EchoBug backdrop.'),
       );
     }
   }

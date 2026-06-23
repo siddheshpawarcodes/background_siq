@@ -205,7 +205,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen> {
         ),
         Spacing.sm.verticalSpace,
         Text(
-          'Capture audio, preview it, then attach a profile to process in the '
+          'Capture audio, preview it, then attach a backdrop to process in the '
           'background while you record the next one.',
           textAlign: TextAlign.center,
           style: Theme.of(
@@ -344,7 +344,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen> {
         Spacing.lg.verticalSpace,
         profilesAsync.when(
           loading: () => const LinearProgressIndicator(),
-          error: (e, _) => Text('Could not load profiles: $e'),
+          error: (e, _) => Text('Could not load backdrops: $e'),
           data: (profiles) => _profileDropdown(profiles),
         ),
         Spacing.lg.verticalSpace,
@@ -360,7 +360,7 @@ class _RecordScreenState extends ConsumerState<RecordScreen> {
     return DropdownButtonFormField<String>(
       initialValue: _profileId,
       decoration: const InputDecoration(
-        labelText: 'Background music profile',
+        labelText: 'Backdrop',
         prefixIcon: Icon(Icons.tune),
       ),
       items: [

@@ -173,8 +173,8 @@ class SettingsScreen extends ConsumerWidget {
       builder: (ctx) => AlertDialog(
         title: const Text('Reset app?'),
         content: const Text(
-            'This clears all profiles, settings, history, and recent files, then '
-            'restores the built-in profiles. Exported files are not deleted.'),
+            'This clears all backdrops, settings, history, and recent files, then '
+            'restores the built-in backdrops. Exported files are not deleted.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           FilledButton(

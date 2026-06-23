@@ -89,7 +89,7 @@ class _ProfileEditorScreenState extends ConsumerState<ProfileEditorScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isNew ? 'New Profile' : 'Edit Profile'),
+        title: Text(_isNew ? 'New Backdrop' : 'Edit Backdrop'),
         actions: [
           TextButton(
             onPressed: _saving ? null : _save,
@@ -103,7 +103,7 @@ class _ProfileEditorScreenState extends ConsumerState<ProfileEditorScreen> {
           TextField(
             controller: _nameController,
             decoration: const InputDecoration(
-              labelText: 'Profile name',
+              labelText: 'Backdrop name',
               hintText: 'e.g. Corporate',
             ),
             textInputAction: TextInputAction.done,
@@ -214,7 +214,7 @@ class _ProfileEditorScreenState extends ConsumerState<ProfileEditorScreen> {
             child: _saving
                 ? const SizedBox(
                     height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Text('Save profile'),
+                : const Text('Save backdrop'),
           ),
         ],
       ),

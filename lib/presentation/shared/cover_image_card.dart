@@ -39,7 +39,7 @@ class CoverImageCard extends StatelessWidget {
               ? 'Tap to choose a thumbnail (optional)'
               : (!exists
                   ? 'File missing — tap to re-select'
-                  : 'Embedded in every export from this profile'),
+                  : 'Embedded in every export from this backdrop'),
           style: !exists && path != null
               ? TextStyle(color: Theme.of(context).colorScheme.error)
               : null,

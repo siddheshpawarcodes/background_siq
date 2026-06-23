@@ -13,7 +13,7 @@ class SaveProfileUseCase {
     final name = profile.name.trim();
     if (name.isEmpty) {
       return Future.value(
-        const Result.err(ValidationFailure('Please enter a profile name.')),
+        const Result.err(ValidationFailure('Please enter a backdrop name.')),
       );
     }
     final sanitized = profile.copyWith(

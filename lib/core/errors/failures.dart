@@ -54,7 +54,7 @@ class FfmpegFailure extends Failure {
 
 class ProfileNotFoundFailure extends Failure {
   const ProfileNotFoundFailure({super.debugDetail})
-      : super(message: 'The selected profile could not be found.');
+      : super(message: 'The selected backdrop could not be found.');
 }
 
 class ExportFailure extends Failure {

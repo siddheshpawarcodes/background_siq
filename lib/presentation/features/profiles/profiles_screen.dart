@@ -17,10 +17,10 @@ class ProfilesScreen extends ConsumerWidget {
     final profilesAsync = ref.watch(profilesProvider);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profiles'),
+        title: const Text('Backdrops'),
         actions: [
           IconButton(
-            tooltip: 'Import profile',
+            tooltip: 'Import backdrop',
             icon: const Icon(Icons.file_download_outlined),
             onPressed: () => _import(context, ref),
           ),
@@ -28,10 +28,10 @@ class ProfilesScreen extends ConsumerWidget {
       ),
       body: profilesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Could not load profiles: $e')),
+        error: (e, _) => Center(child: Text('Could not load backdrops: $e')),
         data: (profiles) {
           if (profiles.isEmpty) {
-            return const Center(child: Text('No profiles yet. Tap + to create one.'));
+            return const Center(child: Text('No backdrops yet. Tap + to create one.'));
           }
           return ListView.separated(
             padding: const EdgeInsets.symmetric(vertical: Spacing.sm),
@@ -44,7 +44,7 @@ class ProfilesScreen extends ConsumerWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push(Routes.profileEdit),
         icon: const Icon(Icons.add),
-        label: const Text('New Profile'),
+        label: const Text('New Backdrop'),
       ),
     );
   }
@@ -113,7 +113,7 @@ class _ProfileTile extends ConsumerWidget {
   Future<bool?> _confirmDelete(BuildContext context) => showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Delete profile?'),
+          title: const Text('Delete backdrop?'),
           content: Text('"${profile.name}" will be permanently removed.'),
           actions: [
             TextButton(

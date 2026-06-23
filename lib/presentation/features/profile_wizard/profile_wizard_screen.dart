@@ -28,7 +28,7 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
   late final TextEditingController _name;
   late final TextEditingController _description;
 
-  static const _titles = ['Profile info', 'Background music', 'Calibration sample', 'Calibrate'];
+  static const _titles = ['Backdrop info', 'Background music', 'Calibration sample', 'Calibrate'];
 
   ProfileWizardController get _ctrl =>
       ref.read(profileWizardControllerProvider(widget.profileId).notifier);
@@ -55,7 +55,7 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isNew ? 'New Profile' : 'Edit Profile'),
+        title: Text(isNew ? 'New Backdrop' : 'Edit Backdrop'),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(48),
           child: Padding(
@@ -88,7 +88,7 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
           TextField(
             controller: _name,
             decoration: const InputDecoration(
-              labelText: 'Profile name',
+              labelText: 'Backdrop name',
               hintText: 'e.g. Corporate Intro',
             ),
             onChanged: _ctrl.setName,
@@ -231,7 +231,7 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
                 onPressed: isLast
                     ? _save
                     : (step == WizardStep.info && !nameValid ? null : _ctrl.next),
-                child: Text(isLast ? 'Save profile' : 'Next'),
+                child: Text(isLast ? 'Save backdrop' : 'Next'),
               ),
             ),
           ],

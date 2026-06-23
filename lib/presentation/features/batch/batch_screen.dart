@@ -138,7 +138,7 @@ class _BatchScreenState extends ConsumerState<BatchScreen> {
         DropdownButtonFormField<String>(
           initialValue: _profileId,
           decoration: const InputDecoration(
-            labelText: 'Background music profile',
+            labelText: 'Backdrop',
             prefixIcon: Icon(Icons.tune),
           ),
           items: [
