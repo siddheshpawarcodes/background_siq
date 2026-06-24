@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -6,6 +7,11 @@ import '../../../core/di/repository_providers.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/entities/background_profile.dart';
 import '../../../domain/entities/dataset_batch_progress.dart';
+import '../../shared/cover_image_card.dart';
+import '../../shared/navigation/nav_log.dart';
+import '../../shared/navigation/navigation_dialogs.dart';
+import '../../shared/navigation/navigation_guard.dart';
+import '../../shared/navigation/processing_status.dart';
 import 'dataset_batch_controller.dart';
 import 'dataset_batch_state.dart';
 
@@ -37,8 +43,11 @@ class _DatasetBatchScreenState extends ConsumerState<DatasetBatchScreen> {
       body = _setupView();
     }
 
-    return PopScope(
-      canPop: !state.running,
+    return NavigationGuard(
+      debugLabel: 'dataset-batch',
+      // Pop freely only when nothing is running and no setup has been entered.
+      canPop: !state.running && !state.hasSetupInput,
+      onConfirmLeave: _confirmLeave,
       child: Scaffold(
         appBar: AppBar(title: const Text('Dataset batch processing')),
         body: Padding(
@@ -47,6 +56,49 @@ class _DatasetBatchScreenState extends ConsumerState<DatasetBatchScreen> {
         ),
       ),
     );
+  }
+
+  /// Starts a run unless another processing engine already owns the foreground
+  /// service (Processing-Aware Navigation).
+  void _startGuarded() {
+    if (otherEngineActive(ref, excluding: ProcessingEngine.dataset)) {
+      showAlreadyRunningMessage(context);
+      return;
+    }
+    ref.read(datasetBatchControllerProvider.notifier).start();
+  }
+
+  /// Back-press policy: while running offer background/cancel/stay; otherwise
+  /// warn before discarding unsaved setup.
+  Future<bool> _confirmLeave() async {
+    final state = ref.read(datasetBatchControllerProvider);
+    final controller = ref.read(datasetBatchControllerProvider.notifier);
+    if (state.running) {
+      final action = await showProcessingRunningDialog(
+        context,
+        canBackground: true,
+        title: 'Dataset Processing Running',
+      );
+      switch (action) {
+        case LeaveAction.background:
+          // Foreground service keeps the run alive; just leave.
+          NavLog.event(NavEvent.processingScreenExited, 'dataset/background');
+          return true;
+        case LeaveAction.cancel:
+          // Cancel gracefully and stay to show cancellation progress.
+          controller.cancel();
+          return false;
+        case LeaveAction.stay:
+          return false;
+      }
+    }
+    if (state.hasSetupInput) {
+      if (!mounted) return false;
+      final leave = await confirmLeaveSetup(context);
+      if (leave) controller.reset();
+      return leave;
+    }
+    return true;
   }
 
   // --- Setup view ---
@@ -107,6 +159,8 @@ class _DatasetBatchScreenState extends ConsumerState<DatasetBatchScreen> {
                 onProfileChanged: (v) =>
                     controller.setEntryProfile(entry.id, v),
                 onRemove: () => controller.removeEntry(entry.id),
+                onPickCover: () => controller.pickEntryCover(entry.id),
+                onClearCover: () => controller.setEntryCover(entry.id, null),
               ),
             ),
         Spacing.xs.verticalSpace,
@@ -127,7 +181,7 @@ class _DatasetBatchScreenState extends ConsumerState<DatasetBatchScreen> {
         _outputLocationNote(),
         Spacing.xl.verticalSpace,
         FilledButton.icon(
-          onPressed: state.canStart ? controller.start : null,
+          onPressed: state.canStart ? _startGuarded : null,
           icon: const Icon(Icons.play_arrow),
           label: const Text('Start processing'),
         ),
@@ -203,12 +257,39 @@ class _DatasetBatchScreenState extends ConsumerState<DatasetBatchScreen> {
     final controller = ref.read(datasetBatchControllerProvider.notifier);
 
     if (pr == null || pr.scanning) {
+      final discovered = pr?.scanDiscovered ?? 0;
+      final matched = pr?.scanMatched ?? 0;
       return Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Center(child: CircularProgressIndicator()),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const CircularProgressIndicator(),
+                Spacing.md.verticalSpace,
+                const Text('Scanning dataset…'),
+                if (discovered > 0 || matched > 0) ...[
+                  Spacing.sm.verticalSpace,
+                  Text('$discovered found · $matched matched',
+                      style: Theme.of(context).textTheme.bodyMedium),
+                ],
+                if (pr?.currentFolder != null) ...[
+                  Spacing.xs.verticalSpace,
+                  Text('in ${pr!.currentFolder!}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall),
+                ],
+              ],
+            ),
+          ),
+          if (kDebugMode) _diagnosticsPanel(pr),
           Spacing.md.verticalSpace,
-          const Center(child: Text('Scanning dataset…')),
+          OutlinedButton.icon(
+            onPressed: controller.cancel,
+            icon: const Icon(Icons.stop),
+            label: const Text('Cancel'),
+          ),
         ],
       );
     }
@@ -242,12 +323,89 @@ class _DatasetBatchScreenState extends ConsumerState<DatasetBatchScreen> {
         Spacing.xs.verticalSpace,
         _countsRow(pr),
         const Spacer(),
+        if (kDebugMode) ...[
+          _diagnosticsPanel(pr),
+          Spacing.md.verticalSpace,
+        ],
         OutlinedButton.icon(
           onPressed: controller.cancel,
           icon: const Icon(Icons.stop),
           label: const Text('Cancel processing'),
         ),
       ],
+    );
+  }
+
+  /// Debug-only panel that surfaces the raw pipeline state so a stall is never
+  /// invisible: which phase is live, scan counts, current folder/file/stage and
+  /// the most recent error. Shown only in debug builds ([kDebugMode]).
+  Widget _diagnosticsPanel(DatasetBatchProgress? pr) {
+    final scheme = Theme.of(context).colorScheme;
+    final phase = pr == null
+        ? 'starting'
+        : pr.completed
+            ? 'completed'
+            : pr.scanning
+                ? 'scanning'
+                : 'processing';
+    final lastError = pr?.failures.isNotEmpty == true
+        ? '${pr!.failures.last.fileName ?? pr.failures.last.filePath}: '
+            '${pr.failures.last.error}'
+        : '—';
+    final rows = <(String, String)>[
+      ('phase', phase),
+      ('scanning', '${pr?.scanning ?? false}'),
+      ('found / matched', '${pr?.scanDiscovered ?? 0} / ${pr?.scanMatched ?? 0}'),
+      ('processed / total', '${pr?.processedFiles ?? 0} / ${pr?.totalFiles ?? 0}'),
+      ('ok / fail / skip',
+          '${pr?.successfulFiles ?? 0} / ${pr?.failedFiles ?? 0} / ${pr?.skippedFiles ?? 0}'),
+      ('current folder', pr?.currentFolder ?? '—'),
+      ('current file', pr?.currentFile ?? '—'),
+      ('current stage', pr?.currentStage ?? '—'),
+      ('last error', lastError),
+    ];
+    return Card(
+      color: scheme.surfaceContainerHighest,
+      child: Padding(
+        padding: const EdgeInsets.all(Spacing.sm),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.bug_report, size: 16, color: scheme.primary),
+                Spacing.xs.horizontalSpace,
+                Text('Diagnostics (debug)',
+                    style: Theme.of(context).textTheme.labelMedium),
+              ],
+            ),
+            Spacing.xs.verticalSpace,
+            for (final (label, value) in rows)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 1),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 120,
+                      child: Text(label,
+                          style: Theme.of(context).textTheme.bodySmall),
+                    ),
+                    Expanded(
+                      child: Text(value,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(fontFeatures: const [])),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -404,6 +562,8 @@ class _SuffixProfileRow extends StatefulWidget {
     required this.onSuffixChanged,
     required this.onProfileChanged,
     required this.onRemove,
+    required this.onPickCover,
+    required this.onClearCover,
   });
 
   final SuffixProfileEntry entry;
@@ -412,6 +572,8 @@ class _SuffixProfileRow extends StatefulWidget {
   final ValueChanged<String> onSuffixChanged;
   final ValueChanged<String> onProfileChanged;
   final VoidCallback onRemove;
+  final VoidCallback onPickCover;
+  final VoidCallback onClearCover;
 
   @override
   State<_SuffixProfileRow> createState() => _SuffixProfileRowState();
@@ -451,50 +613,61 @@ class _SuffixProfileRowState extends State<_SuffixProfileRow> {
         ? widget.entry.profileId
         : null;
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(
-          flex: 3,
-          child: TextField(
-            controller: _suffixController,
-            textInputAction: TextInputAction.done,
-            decoration: InputDecoration(
-              hintText: '_eng',
-              isDense: true,
-              prefixIcon: const Icon(Icons.text_fields),
-              errorText: widget.isDuplicate ? 'Duplicate' : null,
-            ),
-            onChanged: widget.onSuffixChanged,
-          ),
-        ),
-        Spacing.sm.horizontalSpace,
-        Expanded(
-          flex: 4,
-          child: DropdownButtonFormField<String>(
-            initialValue: selected,
-            isExpanded: true,
-            decoration: const InputDecoration(
-              labelText: 'Backdrop',
-              isDense: true,
-              prefixIcon: Icon(Icons.tune),
-            ),
-            items: [
-              for (final pr in widget.profiles)
-                DropdownMenuItem(
-                  value: pr.id,
-                  child: Text(pr.name, overflow: TextOverflow.ellipsis),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 3,
+              child: TextField(
+                controller: _suffixController,
+                textInputAction: TextInputAction.done,
+                decoration: InputDecoration(
+                  hintText: '_eng',
+                  isDense: true,
+                  prefixIcon: const Icon(Icons.text_fields),
+                  errorText: widget.isDuplicate ? 'Duplicate' : null,
                 ),
-            ],
-            onChanged: (id) {
-              if (id != null) widget.onProfileChanged(id);
-            },
-          ),
+                onChanged: widget.onSuffixChanged,
+              ),
+            ),
+            Spacing.sm.horizontalSpace,
+            Expanded(
+              flex: 4,
+              child: DropdownButtonFormField<String>(
+                initialValue: selected,
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  labelText: 'Backdrop',
+                  isDense: true,
+                  prefixIcon: Icon(Icons.tune),
+                ),
+                items: [
+                  for (final pr in widget.profiles)
+                    DropdownMenuItem(
+                      value: pr.id,
+                      child: Text(pr.name, overflow: TextOverflow.ellipsis),
+                    ),
+                ],
+                onChanged: (id) {
+                  if (id != null) widget.onProfileChanged(id);
+                },
+              ),
+            ),
+            IconButton(
+              onPressed: widget.onRemove,
+              icon: const Icon(Icons.close),
+              tooltip: 'Remove suffix',
+            ),
+          ],
         ),
-        IconButton(
-          onPressed: widget.onRemove,
-          icon: const Icon(Icons.close),
-          tooltip: 'Remove suffix',
+        Spacing.xs.verticalSpace,
+        CoverImageCard(
+          path: widget.entry.coverImagePath,
+          onPick: widget.onPickCover,
+          onClear: widget.onClearCover,
         ),
       ],
     );

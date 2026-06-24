@@ -11,8 +11,15 @@ abstract interface class FileSystemPort {
     String? preferredDir,
   });
 
-  /// Temp path for a rendered preview clip with the given [extension].
-  Future<String> previewPath(String extension);
+  /// Temp path for a rendered preview clip with the given [extension]. A
+  /// distinct [token] yields a distinct filename so a fresh render never
+  /// overwrites a clip the audio player still holds open; stale preview files
+  /// are pruned so the temp dir doesn't grow.
+  Future<String> previewPath(String extension, {String? token});
+
+  /// Deletes any leftover preview renders from the temp dir, e.g. when the
+  /// calibration screen closes. Best-effort; never throws.
+  Future<void> clearPreviews();
 
   /// Whether [path] exists and is readable.
   Future<bool> exists(String path);

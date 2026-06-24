@@ -23,8 +23,10 @@ class GeneratePreviewUseCase {
   String? _activeJobId;
 
   Future<Result<String>> call(AudioFileRef source, BackgroundProfile profile) async {
-    final outputPath = await _fileSystem.previewPath(source.ext);
     final jobId = _newId();
+    // Unique per render so a fresh preview never overwrites the file the player
+    // is still holding from the previous render.
+    final outputPath = await _fileSystem.previewPath(source.ext, token: jobId);
     _activeJobId = jobId;
     final request = ProcessRequest(
       jobId: jobId,
@@ -40,4 +42,8 @@ class GeneratePreviewUseCase {
     final id = _activeJobId;
     if (id != null) await _processor.cancel(id);
   }
+
+  /// Deletes leftover preview renders from the temp dir (e.g. on leaving the
+  /// calibration screen) so nothing lingers after the session.
+  Future<void> clearPreviews() => _fileSystem.clearPreviews();
 }

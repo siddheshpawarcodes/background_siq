@@ -49,15 +49,20 @@ class FilterGraphBuilder {
 
     if (hasMusic) {
       final volume = (profile.musicVolume / 100).toStringAsFixed(2);
+      // The music is opened with `-stream_loop -1`, so it is an INFINITE input.
+      // amix must therefore end with the VOICE, not the music: `duration=first`
+      // (the first amix input is the looped music) never ends, so a full render
+      // — which, unlike a preview, has no `-t` cap — would mux forever and the
+      // export would hang. `duration=shortest` ends at the finite voice track.
       if (profile.ducking == DuckingStrength.off) {
         parts.add('[0:a]$voiceChain[v]');
         parts.add('[1:a]volume=$volume[mus]');
-        parts.add('[mus][v]amix=inputs=2:duration=first:dropout_transition=0[mixed]');
+        parts.add('[mus][v]amix=inputs=2:duration=shortest:dropout_transition=0[mixed]');
       } else {
         parts.add('[0:a]$voiceChain,asplit=2[v_mix][v_sc]');
         parts.add('[1:a]volume=$volume[mus]');
         parts.add('[mus][v_sc]${_duckingFilter(profile.ducking)}[ducked]');
-        parts.add('[ducked][v_mix]amix=inputs=2:duration=first:dropout_transition=0[mixed]');
+        parts.add('[ducked][v_mix]amix=inputs=2:duration=shortest:dropout_transition=0[mixed]');
       }
     } else {
       parts.add('[0:a]$voiceChain[mixed]');

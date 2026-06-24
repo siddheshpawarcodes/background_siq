@@ -40,7 +40,11 @@ class _FakeFs implements FileSystemPort {
   @override
   Future<bool> exists(String path) async => fileExists;
   @override
-  Future<String> previewPath(String extension) async => '/tmp/preview.$extension';
+  Future<String> previewPath(String extension, {String? token}) async =>
+      '/tmp/preview.$extension';
+
+  @override
+  Future<void> clearPreviews() async {}
   @override
   Future<Result<String>> resolveOutputPath(
           {required AudioFileRef source, String? preferredDir}) async =>

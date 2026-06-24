@@ -9,6 +9,7 @@ class SuffixProfileEntry {
     required this.id,
     this.suffix = '',
     this.profileId,
+    this.coverImagePath,
   });
 
   /// Stable identity for widget keys / controller lifecycle. Survives edits and
@@ -21,6 +22,10 @@ class SuffixProfileEntry {
   /// Selected profile id, or null until the user picks one.
   final String? profileId;
 
+  /// Optional cover-art image (thumbnail) to embed in this suffix's exports,
+  /// chosen alongside the backdrop. Null until the user picks one.
+  final String? coverImagePath;
+
   bool get isComplete => suffix.trim().isNotEmpty && profileId != null;
 
   SuffixProfileEntry copyWith({String? suffix, String? profileId}) =>
@@ -28,6 +33,16 @@ class SuffixProfileEntry {
         id: id,
         suffix: suffix ?? this.suffix,
         profileId: profileId ?? this.profileId,
+        coverImagePath: coverImagePath,
+      );
+
+  /// Returns a copy with the cover image set to [path] (or cleared when null).
+  /// Separate from [copyWith] because that can't pass an explicit null.
+  SuffixProfileEntry withCover(String? path) => SuffixProfileEntry(
+        id: id,
+        suffix: suffix,
+        profileId: profileId,
+        coverImagePath: path,
       );
 }
 
@@ -79,6 +94,10 @@ class DatasetBatchState {
       entries.isNotEmpty &&
       entries.every((e) => e.isComplete) &&
       duplicateSuffixes.isEmpty;
+
+  /// True once the user has started configuring a run (folder picked or any
+  /// suffix row added) — used to warn before discarding setup on back.
+  bool get hasSetupInput => rootFolder != null || entries.isNotEmpty;
 
   DatasetBatchState copyWith({
     String? rootFolder,

@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../core/theme/app_theme.dart';
-import '../../../../domain/entities/audio_file_ref.dart';
 import '../../../../domain/entities/background_profile.dart';
 import '../../../../domain/entities/enums.dart';
 import '../../../shared/audio_seek_bar.dart';
@@ -22,6 +21,16 @@ class CalibrateStep extends ConsumerWidget {
     final ctrl = ref.read(profileWizardControllerProvider(profileId).notifier);
     final draft = ref.watch(profileWizardControllerProvider(profileId)).draft;
     final preview = ref.watch(calibrationPreviewControllerProvider);
+
+    // Confirm to the user once a Refresh finishes rendering (design §4).
+    ref.listen(calibrationPreviewControllerProvider, (prev, next) {
+      if (prev?.status == PreviewStatus.refreshing &&
+          next.status == PreviewStatus.ready) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Preview updated successfully')),
+        );
+      }
+    });
 
     return ListView(
       padding: const EdgeInsets.all(Spacing.md),
@@ -166,81 +175,165 @@ class CalibrateStep extends ConsumerWidget {
     );
   }
 
+  /// The professional preview panel (design §2–§5, §7). Renders strictly from
+  /// [preview].status so the controls and the audio engine can never desync; the
+  /// out-of-date badge is layered on top by comparing the live draft against the
+  /// rendered preview's settings.
   Widget _previewBar(
     BuildContext context,
     WidgetRef ref,
     BackgroundProfile draft,
     PreviewState preview,
   ) {
+    final scheme = Theme.of(context).colorScheme;
+    final notifier = ref.read(calibrationPreviewControllerProvider.notifier);
     final sample = draft.calibrationVoiceSamplePath;
-    final canPreview = sample != null && !preview.generating;
+    final outOfDate = preview.hasPreview && notifier.isStale(draft);
+
+    final Widget body;
+    switch (preview.status) {
+      case PreviewStatus.idle:
+        body = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              sample == null
+                  ? 'Add a calibration voice sample (Step 3) to preview.'
+                  : 'Generate a preview to hear your settings applied to the '
+                      'sample.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            Spacing.sm.verticalSpace,
+            FilledButton.icon(
+              onPressed: sample == null ? null : () => notifier.generate(draft),
+              icon: const Icon(Icons.graphic_eq),
+              label: const Text('Generate Preview'),
+            ),
+          ],
+        );
+      case PreviewStatus.generating:
+        body = _loadingRow(context, 'Generating preview…');
+      case PreviewStatus.refreshing:
+        body = _loadingRow(context, 'Refreshing preview…');
+      case PreviewStatus.error:
+        body = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              preview.error ?? 'Preview failed.',
+              style: TextStyle(color: scheme.error),
+            ),
+            Spacing.sm.verticalSpace,
+            OutlinedButton.icon(
+              onPressed: sample == null ? null : () => notifier.generate(draft),
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry'),
+            ),
+          ],
+        );
+      case PreviewStatus.ready:
+      case PreviewStatus.playing:
+      case PreviewStatus.paused:
+      case PreviewStatus.stopped:
+        body = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                IconButton.filled(
+                  onPressed: notifier.togglePlay,
+                  tooltip: preview.isPlaying ? 'Pause' : 'Play',
+                  icon: Icon(preview.isPlaying
+                      ? Icons.pause
+                      : Icons.play_arrow),
+                ),
+                Spacing.sm.horizontalSpace,
+                IconButton.filledTonal(
+                  onPressed: notifier.stop,
+                  tooltip: 'Stop',
+                  icon: const Icon(Icons.stop),
+                ),
+                const Spacer(),
+                IconButton.filledTonal(
+                  onPressed: () => notifier.refresh(draft),
+                  tooltip: 'Refresh preview',
+                  icon: const Icon(Icons.refresh),
+                ),
+              ],
+            ),
+            Spacing.xs.verticalSpace,
+            AudioSeekBar(
+              positionStream: notifier.positionStream,
+              durationStream: notifier.durationStream,
+              onSeek: notifier.seek,
+            ),
+            if (outOfDate) ...[
+              Spacing.sm.verticalSpace,
+              _outOfDateBadge(context, () => notifier.refresh(draft)),
+            ],
+          ],
+        );
+    }
+
     return Card(
-      color: Theme.of(context).colorScheme.primaryContainer,
+      color: scheme.primaryContainer,
       child: Padding(
         padding: const EdgeInsets.all(Spacing.md),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Live preview',
-                style: Theme.of(context).textTheme.titleSmall),
-            Spacing.xs.verticalSpace,
-            Text(
-              sample == null
-                  ? 'Add a calibration voice sample (Step 3) to preview.'
-                  : 'Hear your settings applied to the sample.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            if (preview.error != null) ...[
-              Spacing.xs.verticalSpace,
-              Text(preview.error!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error)),
-            ],
-            Spacing.sm.verticalSpace,
             Row(
               children: [
-                FilledButton.icon(
-                  // Disabled (greyed out) while a preview renders; no spinner —
-                  // the seek bar + autoplay appear only once rendering completes.
-                  onPressed: canPreview
-                      ? () => ref
-                          .read(calibrationPreviewControllerProvider.notifier)
-                          .preview(
-                            AudioFileRef(
-                              path: sample,
-                              name: sample.split('/').last,
-                              ext: sample.split('.').last.toLowerCase(),
-                            ),
-                            draft,
-                          )
-                      : null,
-                  icon: const Icon(Icons.play_arrow),
-                  label: const Text('Preview'),
-                ),
-                if (preview.hasPreview && !preview.generating) ...[
-                  Spacing.sm.horizontalSpace,
-                  IconButton(
-                    onPressed: () => ref
-                        .read(calibrationPreviewControllerProvider.notifier)
-                        .togglePlay(),
-                    icon: Icon(preview.playing ? Icons.pause : Icons.play_arrow),
-                  ),
-                ],
+                Icon(Icons.equalizer,
+                    size: 18, color: scheme.onPrimaryContainer),
+                Spacing.xs.horizontalSpace,
+                Text('Preview',
+                    style: Theme.of(context).textTheme.titleSmall),
               ],
             ),
-            if (preview.hasPreview && !preview.generating) ...[
-              Spacing.xs.verticalSpace,
-              Builder(builder: (context) {
-                final ctrl =
-                    ref.read(calibrationPreviewControllerProvider.notifier);
-                return AudioSeekBar(
-                  positionStream: ctrl.positionStream,
-                  durationStream: ctrl.durationStream,
-                  onSeek: ctrl.seek,
-                );
-              }),
-            ],
+            Spacing.sm.verticalSpace,
+            body,
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _loadingRow(BuildContext context, String text) => Row(
+        children: [
+          const SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          Spacing.sm.horizontalSpace,
+          Text(text, style: Theme.of(context).textTheme.bodyMedium),
+        ],
+      );
+
+  /// Warning shown when DSP settings changed after the preview was rendered, so
+  /// the user can't mistake the loaded clip for the latest configuration.
+  Widget _outOfDateBadge(BuildContext context, VoidCallback onRefresh) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(Spacing.sm, Spacing.xs, Spacing.xs, Spacing.xs),
+      decoration: BoxDecoration(
+        color: scheme.errorContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.warning_amber_rounded,
+              size: 16, color: scheme.onErrorContainer),
+          Spacing.xs.horizontalSpace,
+          Expanded(
+            child: Text(
+              'Preview needs regeneration',
+              style: TextStyle(color: scheme.onErrorContainer, fontSize: 12),
+            ),
+          ),
+          TextButton(onPressed: onRefresh, child: const Text('Refresh')),
+        ],
       ),
     );
   }

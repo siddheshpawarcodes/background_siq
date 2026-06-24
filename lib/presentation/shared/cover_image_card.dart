@@ -5,10 +5,12 @@ import 'package:path/path.dart' as p;
 
 import '../../core/theme/app_theme.dart';
 
-/// Card showing a profile's selected cover-art image (the thumbnail embedded
-/// into every export) with a small preview plus pick/change/clear actions.
+/// Card for choosing the cover-art image (thumbnail) embedded into the
+/// exported audio, with a small preview plus pick/change/clear actions. Shown
+/// wherever a backdrop is applied to audio (home, batch, dataset batch) so the
+/// thumbnail is picked alongside the backdrop for that export.
 ///
-/// Mirrors [AudioFileCard] in shape so the wizard and editor read consistently,
+/// Mirrors [AudioFileCard] in shape so the selection screens read consistently,
 /// but renders the picked file as an image rather than probing it as audio.
 class CoverImageCard extends StatelessWidget {
   const CoverImageCard({
@@ -39,7 +41,7 @@ class CoverImageCard extends StatelessWidget {
               ? 'Tap to choose a thumbnail (optional)'
               : (!exists
                   ? 'File missing — tap to re-select'
-                  : 'Embedded in every export from this backdrop'),
+                  : 'Embedded in the exported audio'),
           style: !exists && path != null
               ? TextStyle(color: Theme.of(context).colorScheme.error)
               : null,

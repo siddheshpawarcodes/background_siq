@@ -16,6 +16,9 @@ class DatasetBatchProgress {
     this.currentFileProgress = 0.0,
     this.failures = const [],
     this.scanning = false,
+    this.scanDiscovered = 0,
+    this.scanMatched = 0,
+    this.currentStage,
     this.completed = false,
     this.cancelled = false,
     this.noMatchReason,
@@ -49,6 +52,16 @@ class DatasetBatchProgress {
   /// True while the dataset is still being scanned for matches.
   final bool scanning;
 
+  /// Live count of audio files seen so far during [scanning] (diagnostics).
+  final int scanDiscovered;
+
+  /// Live count of files matching a suffix so far during [scanning].
+  final int scanMatched;
+
+  /// Human-readable processing stage of [currentFile] (e.g. "mixing"), surfaced
+  /// for the debug diagnostics panel. Null when idle/scanning.
+  final String? currentStage;
+
   /// True when the whole run has finished (normally or via cancellation).
   final bool completed;
 
@@ -79,6 +92,9 @@ class DatasetBatchProgress {
     double? currentFileProgress,
     List<DatasetFileFailure>? failures,
     bool? scanning,
+    int? scanDiscovered,
+    int? scanMatched,
+    String? currentStage,
     bool? completed,
     bool? cancelled,
     String? noMatchReason,
@@ -94,6 +110,9 @@ class DatasetBatchProgress {
         currentFileProgress: currentFileProgress ?? this.currentFileProgress,
         failures: failures ?? this.failures,
         scanning: scanning ?? this.scanning,
+        scanDiscovered: scanDiscovered ?? this.scanDiscovered,
+        scanMatched: scanMatched ?? this.scanMatched,
+        currentStage: currentStage ?? this.currentStage,
         completed: completed ?? this.completed,
         cancelled: cancelled ?? this.cancelled,
         noMatchReason: noMatchReason ?? this.noMatchReason,

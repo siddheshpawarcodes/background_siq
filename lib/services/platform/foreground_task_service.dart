@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 
@@ -21,6 +22,16 @@ class ForegroundTaskService {
 
   static const String _channelId = 'dataset_batch_processing';
   static const String _channelName = 'Dataset processing';
+
+  /// White-on-transparent firefly silhouette used as the notification small
+  /// icon. Resolved by the plugin from the matching `<meta-data>` entry in
+  /// AndroidManifest.xml (name must stay in sync). Without this the plugin
+  /// falls back to the colored launcher icon, which Android masks to its alpha
+  /// channel and renders as a meaningless blob in the notification.
+  static const NotificationIcon _notificationIcon = NotificationIcon(
+    metaDataName: 'notification_icon',
+    backgroundColor: Color(0xFF2E6CF6), // brand seed (AppTheme.brandSeed)
+  );
 
   void _ensureInitialized() {
     if (_initialized) return;
@@ -65,6 +76,7 @@ class ForegroundTaskService {
       serviceTypes: const [ForegroundServiceTypes.dataSync],
       notificationTitle: title,
       notificationText: text,
+      notificationIcon: _notificationIcon,
     );
     return result is ServiceRequestSuccess;
   }
@@ -77,6 +89,10 @@ class ForegroundTaskService {
     await FlutterForegroundTask.updateService(
       notificationTitle: title,
       notificationText: text,
+      // Re-supply on every update: the plugin reloads notification content from
+      // scratch each refresh, so omitting it would revert to the launcher-icon
+      // blob on the next progress tick.
+      notificationIcon: _notificationIcon,
     );
   }
 

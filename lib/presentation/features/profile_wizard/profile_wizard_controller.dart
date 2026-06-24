@@ -39,7 +39,15 @@ class ProfileWizardController
     extends AutoDisposeFamilyNotifier<WizardState, String?> {
   Timer? _debounce;
 
+  /// Snapshot of the draft as the wizard opened, used to detect unsaved edits
+  /// so we can warn before the user accidentally leaves (design §6).
+  late BackgroundProfile _initial;
+
   bool get _isNew => arg == null;
+
+  /// True once the draft has diverged from the state it was opened with. Freezed
+  /// value-equality covers every field; ids/timestamps only change on save.
+  bool get hasUnsavedChanges => state.draft != _initial;
 
   @override
   WizardState build(String? arg) {
@@ -50,6 +58,7 @@ class ProfileWizardController
     } else {
       draft = ref.read(draftRepositoryProvider).load() ?? _new();
     }
+    _initial = draft;
     return WizardState(draft: draft);
   }
 
@@ -79,7 +88,6 @@ class ProfileWizardController
   void setName(String v) => _update(state.draft.copyWith(name: v));
   void setDescription(String v) => _update(state.draft.copyWith(description: v));
   void setMusic(String? path) => _update(state.draft.copyWith(musicFilePath: path));
-  void setCover(String? path) => _update(state.draft.copyWith(coverImagePath: path));
   void setCalibrationSample(String? path) =>
       _update(state.draft.copyWith(calibrationVoiceSamplePath: path));
   void setVoiceVolume(int v) => _update(state.draft.copyWith(voiceVolume: v));

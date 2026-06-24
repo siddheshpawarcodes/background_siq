@@ -8,6 +8,7 @@ import '../core/di/repository_providers.dart';
 import '../core/logging/app_logger.dart';
 import '../core/theme/app_theme.dart';
 import 'router/app_router.dart';
+import 'shared/navigation/app_lifecycle_observer.dart';
 
 /// Root application widget (SRS §9, §12).
 class EchoBugApp extends ConsumerWidget {
@@ -29,13 +30,15 @@ class EchoBugApp extends ConsumerWidget {
       designSize: const Size(375, 812),
       minTextAdapt: true,
       splitScreenMode: true,
-      builder: (context, child) => MaterialApp.router(
-        title: AppConstants.appName,
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.light,
-        darkTheme: AppTheme.dark,
-        themeMode: themeMode,
-        routerConfig: appRouter,
+      builder: (context, child) => AppLifecycleObserver(
+        child: MaterialApp.router(
+          title: AppConstants.appName,
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
+          themeMode: themeMode,
+          routerConfig: appRouter,
+        ),
       ),
     );
   }

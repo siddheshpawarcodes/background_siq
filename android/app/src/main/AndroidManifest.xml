@@ -61,6 +61,15 @@
             android:foregroundServiceType="dataSync"
             android:exported="false" />
 
+        <!-- Notification small icon for the foreground service. Android renders
+             the small icon as a white-on-transparent silhouette (alpha only), so
+             the colored launcher icon can't be used — it would mask to a blob.
+             flutter_foreground_task resolves the icon by this meta-data name (see
+             NotificationIcon in foreground_task_service.dart). -->
+        <meta-data
+            android:name="notification_icon"
+            android:resource="@drawable/ic_stat_firefly" />
+
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

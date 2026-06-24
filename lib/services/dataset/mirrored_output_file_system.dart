@@ -60,8 +60,11 @@ class MirroredOutputFileSystem implements FileSystemPort {
   }
 
   @override
-  Future<String> previewPath(String extension) =>
-      _inner.previewPath(extension);
+  Future<String> previewPath(String extension, {String? token}) =>
+      _inner.previewPath(extension, token: token);
+
+  @override
+  Future<void> clearPreviews() => _inner.clearPreviews();
 
   @override
   Future<bool> exists(String path) => _inner.exists(path);

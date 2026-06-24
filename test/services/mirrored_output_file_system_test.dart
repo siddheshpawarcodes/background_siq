@@ -19,7 +19,11 @@ class _RecordingFs implements FileSystemPort {
   }
 
   @override
-  Future<String> previewPath(String extension) async => '/tmp/p.$extension';
+  Future<String> previewPath(String extension, {String? token}) async =>
+      '/tmp/p.$extension';
+
+  @override
+  Future<void> clearPreviews() async {}
 
   @override
   Future<bool> exists(String path) async => true;

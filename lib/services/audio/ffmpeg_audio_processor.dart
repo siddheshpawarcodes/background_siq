@@ -100,13 +100,19 @@ class FfmpegAudioProcessor implements AudioProcessorPort {
       trim: request.trim,
     );
 
-    AppLogger.d('FFmpeg args: ${command.arguments.join(' ')}');
+    AppLogger.i('FFMPEG_COMMAND job=${request.jobId}: '
+        'ffmpeg ${command.arguments.join(' ')}');
 
+    final stopwatch = Stopwatch()..start();
     try {
       final session = await FFmpegKit.executeWithArgumentsAsync(
         command.arguments,
         (session) async {
+          stopwatch.stop();
           final code = await session.getReturnCode();
+          AppLogger.i('PROCESS_EXIT_CODE=${code?.getValue()} '
+              'PROCESS_DURATION=${stopwatch.elapsedMilliseconds}ms '
+              'job=${request.jobId}');
           if (ReturnCode.isSuccess(code)) {
             controller.add(
               const ProcessingProgress(stage: JobStage.completed, progress: 1),
@@ -135,7 +141,10 @@ class FfmpegAudioProcessor implements AudioProcessorPort {
         },
       );
       _sessions[request.jobId] = session.getSessionId() ?? -1;
+      AppLogger.i('PROCESS_STARTED sessionId=${session.getSessionId()} '
+          'job=${request.jobId}');
     } catch (e) {
+      AppLogger.e('PROCESS_START_FAILED job=${request.jobId}: $e');
       controller.addError(FfmpegFailure(debugDetail: e.toString()));
       await controller.close();
     }

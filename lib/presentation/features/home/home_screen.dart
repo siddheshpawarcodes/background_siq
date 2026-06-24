@@ -11,7 +11,10 @@ import '../../../core/theme/app_theme.dart';
 import '../../../domain/entities/background_profile.dart';
 import '../../router/app_router.dart';
 import '../../shared/audio_seek_bar.dart';
-import '../processing/processing_screen.dart';
+import '../../shared/cover_image_card.dart';
+import '../../shared/navigation/navigation_dialogs.dart';
+import '../../shared/navigation/processing_status.dart';
+import '../processing/single_apply_controller.dart';
 import 'home_controller.dart';
 
 /// Main screen — file selector, profile dropdown, Preview, Apply (SRS §11.1).
@@ -26,6 +29,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   final _player = AudioPlayer();
   bool _previewBusy = false;
   bool _hasPreview = false;
+
+  /// Optional cover-art image (thumbnail) to embed in this export. Chosen here,
+  /// alongside the backdrop, rather than baked into the backdrop itself.
+  String? _thumbnailPath;
 
   @override
   void dispose() {
@@ -63,6 +70,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             loading: () => const LinearProgressIndicator(),
             error: (e, _) => Text('Could not load backdrops: $e'),
             data: (profiles) => _profileDropdown(profiles, home.profileId),
+          ),
+          Spacing.md.verticalSpace,
+          CoverImageCard(
+            path: _thumbnailPath,
+            onPick: _pickThumbnail,
+            onClear: () => setState(() => _thumbnailPath = null),
           ),
           Spacing.xl.verticalSpace,
           _actions(home, profilesAsync.valueOrNull ?? const []),
@@ -141,11 +154,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+  Future<void> _pickThumbnail() async {
+    final path = await ref.read(filePickServiceProvider).pickImagePath();
+    if (path != null) setState(() => _thumbnailPath = path);
+  }
+
   Future<void> _preview(HomeState home, BackgroundProfile? profile) async {
     if (home.file == null || profile == null) return;
     setState(() => _previewBusy = true);
-    final result =
-        await ref.read(generatePreviewUseCaseProvider).call(home.file!, profile);
+    final result = await ref
+        .read(generatePreviewUseCaseProvider)
+        .call(home.file!, profile.copyWith(coverImagePath: _thumbnailPath));
     if (!mounted) return;
     setState(() => _previewBusy = false);
     await result.fold(
@@ -213,10 +232,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   void _apply(HomeState home, BackgroundProfile? profile) {
     if (home.file == null || profile == null) return;
-    context.push(
-      Routes.processing,
-      extra: ApplyArgs(source: home.file!, profile: profile),
-    );
+    // One active engine at a time — including a single-apply still finishing in
+    // the background — so we never spin up a second pipeline / service.
+    if (anyEngineActive(ref)) {
+      showAlreadyRunningMessage(context);
+      return;
+    }
+    ref.read(singleApplyControllerProvider.notifier).start(
+          ApplyArgs(
+            source: home.file!,
+            profile: profile.copyWith(coverImagePath: _thumbnailPath),
+          ),
+        );
+    context.push(Routes.processing);
   }
 
   Widget _recents() {

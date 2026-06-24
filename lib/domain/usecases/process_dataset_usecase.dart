@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
 import '../../core/constants/app_constants.dart';
+import '../../core/logging/app_logger.dart';
 import '../../services/dataset/dataset_batch_cancellation_token.dart';
 import '../../services/dataset/dataset_file_scanner.dart';
 import '../../services/dataset/mirrored_output_file_system.dart';
@@ -67,7 +69,17 @@ class ProcessDatasetUseCase {
     DatasetBatchCancellationToken? cancelToken,
     List<String>? onlyPaths,
     Set<String> extensions = DatasetFileScanner.defaultExtensions,
+    Duration perFileTimeout = const Duration(minutes: 15),
   }) async* {
+    AppLogger.i('START_DATASET_PROCESSING');
+    AppLogger.i('  root=${config.rootFolder}');
+    AppLogger.i('  extensions=$extensions  perFileTimeout=$perFileTimeout');
+    AppLogger.i('  onlyPaths=${onlyPaths?.length ?? 'null (full scan)'}');
+    for (final sp in config.suffixProfiles) {
+      AppLogger.i('  mapping: "${sp.suffix}" -> profile ${sp.profileId}'
+          '${sp.coverImagePath == null ? '' : ' (+cover)'}');
+    }
+
     // --- Resolve a profile per suffix up front. ---
     // Each suffix may map to a different profile (and thus different background
     // music). Distinct profile ids are fetched once and cached. A suffix whose
@@ -81,12 +93,21 @@ class ProcessDatasetUseCase {
         final result = await _profiles.getById(sp.profileId);
         resolved[sp.profileId] = result.valueOrNull;
         firstError ??= result.failureOrNull?.message;
+        AppLogger.i('RESOLVE_PROFILE ${sp.profileId}: '
+            '${result.valueOrNull == null ? 'FAILED (${result.failureOrNull?.message})' : 'ok'}');
       }
       final profile = resolved[sp.profileId];
-      if (profile != null) profileBySuffix[sp.suffix] = profile;
+      // Each suffix carries its own thumbnail, chosen at selection time, so
+      // override the resolved profile's cover art per suffix (two suffixes may
+      // share a profile but want different — or no — thumbnails).
+      if (profile != null) {
+        profileBySuffix[sp.suffix] =
+            profile.copyWith(coverImagePath: sp.coverImagePath);
+      }
     }
 
     if (profileBySuffix.isEmpty) {
+      AppLogger.w('START aborted: no backdrop resolved for any suffix.');
       yield DatasetBatchProgress(
         completed: true,
         failures: [
@@ -105,20 +126,43 @@ class ProcessDatasetUseCase {
     final List<String> paths;
     DatasetScanResult? scan;
     if (onlyPaths != null) {
+      AppLogger.i('SCAN_SKIPPED: retrying ${onlyPaths.length} supplied path(s).');
       paths = onlyPaths;
     } else {
-      scan = await _scanner.scanDetailed(
+      // Drain the progressive scan, surfacing live counts as we go so the UI
+      // never sits silent during a long recursive walk.
+      await for (final tick in _scanner.scanProgressive(
         rootFolder: config.rootFolder,
         suffixes: config.suffixes,
         extensions: extensions,
-      );
-      paths = scan.matchedPaths;
+      )) {
+        if (cancelToken?.isCancelled ?? false) {
+          AppLogger.i('CANCELLED during scan.');
+          yield const DatasetBatchProgress(completed: true, cancelled: true);
+          return;
+        }
+        if (tick.isDone) {
+          scan = tick.result;
+        } else {
+          yield DatasetBatchProgress(
+            scanning: true,
+            scanDiscovered: tick.discovered,
+            scanMatched: tick.matched,
+            currentFolder: tick.currentDirectory,
+          );
+        }
+      }
+      paths = scan?.matchedPaths ?? const [];
     }
 
     final queue = paths.map(_describe).toList();
     final total = queue.length;
+    AppLogger.i('SCAN result: matched=$total '
+        '(audioFound=${scan?.audioFilesFound ?? '-'}, '
+        'rootReadable=${scan?.rootReadable ?? '-'})');
 
     if (total == 0) {
+      AppLogger.w('No files to process — completing with a no-match reason.');
       yield DatasetBatchProgress(
         completed: true,
         noMatchReason:
@@ -131,7 +175,9 @@ class ProcessDatasetUseCase {
 
     // Build the engine for this run; its file system mirrors the source tree
     // under the public output root (e.g. Music/EchoBug/<rootName>/...).
+    AppLogger.i('BUILD_APPLY_START');
     final apply = await _buildApply(config.rootFolder);
+    AppLogger.i('BUILD_APPLY_COMPLETE');
 
     // --- Process sequentially. ---
     var processed = 0;
@@ -141,9 +187,13 @@ class ProcessDatasetUseCase {
     final failures = <DatasetFileFailure>[];
 
     for (final file in queue) {
-      if (cancelToken?.isCancelled ?? false) break;
+      if (cancelToken?.isCancelled ?? false) {
+        AppLogger.i('CANCELLED before file ${processed + 1}/$total.');
+        break;
+      }
 
       final fileName = p.basename(file.sourcePath);
+      AppLogger.i('PROCESSING_FILE ${processed + 1}/$total: ${file.sourcePath}');
 
       yield DatasetBatchProgress(
         totalFiles: total,
@@ -154,11 +204,13 @@ class ProcessDatasetUseCase {
         currentFile: fileName,
         currentFolder: file.folderName,
         currentFileProgress: 0,
+        currentStage: JobStage.preparing.name,
         failures: List.unmodifiable(failures),
       );
 
       // Skip files that vanished between discovery and processing.
       if (!await _fileSystem.exists(file.sourcePath)) {
+        AppLogger.w('SKIP (vanished before processing): ${file.sourcePath}');
         skipped++;
         processed++;
         continue;
@@ -172,6 +224,7 @@ class ProcessDatasetUseCase {
       );
       final profile = suffix == null ? null : profileBySuffix[suffix];
       if (profile == null) {
+        AppLogger.w('FAIL (no profile for suffix "$suffix"): ${file.sourcePath}');
         failed++;
         processed++;
         failures.add(DatasetFileFailure(
@@ -191,8 +244,23 @@ class ProcessDatasetUseCase {
       );
 
       try {
+        AppLogger.i('APPLY_PROFILE_START suffix="$suffix" '
+            'profile=${profile.name} file=$fileName');
         ProcessingJob? lastJob;
-        await for (final job in apply.call(source, profile)) {
+        // A single hung file (e.g. FFmpeg that never exits) must never block the
+        // whole dataset: time out if no progress event arrives within the
+        // window, then record a failure and move on.
+        final jobs = apply.call(source, profile).timeout(
+          perFileTimeout,
+          onTimeout: (sink) {
+            AppLogger.e('APPLY_TIMEOUT after $perFileTimeout: $fileName');
+            sink.addError(
+              TimeoutException('Processing timed out', perFileTimeout),
+            );
+            sink.close();
+          },
+        );
+        await for (final job in jobs) {
           lastJob = job;
           yield DatasetBatchProgress(
             totalFiles: total,
@@ -203,9 +271,12 @@ class ProcessDatasetUseCase {
             currentFile: fileName,
             currentFolder: file.folderName,
             currentFileProgress: job.progress,
+            currentStage: job.stage.name,
             failures: List.unmodifiable(failures),
           );
         }
+        AppLogger.i('APPLY_PROFILE_COMPLETE file=$fileName '
+            'stage=${lastJob?.stage.name}');
 
         if (lastJob?.stage == JobStage.completed) {
           // Engine wrote to an app-private staging path; publish it into the
@@ -221,11 +292,16 @@ class ProcessDatasetUseCase {
           ));
         }
       } catch (error, stackTrace) {
+        AppLogger.e('APPLY_PROFILE_ERROR file=$fileName: $error');
         failed++;
+        final timedOut = error is TimeoutException;
         failures.add(DatasetFileFailure(
           filePath: file.sourcePath,
           fileName: fileName,
-          error: error.toString(),
+          error: timedOut
+              ? 'Processing timeout exceeded '
+                  '(${perFileTimeout.inMinutes} min).'
+              : error.toString(),
           stackTrace: stackTrace.toString(),
         ));
       }
@@ -234,6 +310,9 @@ class ProcessDatasetUseCase {
     }
 
     final cancelled = cancelToken?.isCancelled ?? false;
+    AppLogger.i('DATASET_COMPLETE cancelled=$cancelled '
+        'processed=$processed successful=$successful '
+        'failed=$failed skipped=$skipped');
     yield DatasetBatchProgress(
       totalFiles: total,
       processedFiles: processed,

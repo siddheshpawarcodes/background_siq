@@ -89,10 +89,40 @@ class FileSystemService implements FileSystemPort {
     }
   }
 
+  static const _previewPrefix = 'echobug_preview';
+
   @override
-  Future<String> previewPath(String extension) async {
+  Future<String> previewPath(String extension, {String? token}) async {
     final tmp = await getTemporaryDirectory();
-    return p.join(tmp.path, 'echobug_preview.$extension');
+    // Drop any earlier renders first so the temp dir never accumulates preview
+    // files. Safe even if the player still holds one open — unlink keeps the
+    // open handle valid until it's released.
+    await _prunePreviews(tmp);
+    final name = (token == null || token.isEmpty)
+        ? _previewPrefix
+        : '${_previewPrefix}_$token';
+    return p.join(tmp.path, '$name.$extension');
+  }
+
+  @override
+  Future<void> clearPreviews() async => _prunePreviews(await getTemporaryDirectory());
+
+  /// Removes leftover preview renders from the temp directory. Async so the
+  /// directory scan/unlinks never block the UI isolate; best-effort throughout.
+  Future<void> _prunePreviews(Directory tmp) async {
+    try {
+      await for (final entry in tmp.list()) {
+        if (entry is File && p.basename(entry.path).startsWith(_previewPrefix)) {
+          try {
+            await entry.delete();
+          } catch (_) {
+            // A file may briefly be unremovable; the next prune collects it.
+          }
+        }
+      }
+    } catch (_) {
+      // Listing can fail transiently; pruning is best-effort.
+    }
   }
 
   @override

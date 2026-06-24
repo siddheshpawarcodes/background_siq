@@ -109,7 +109,7 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: Routes.processing,
       parentNavigatorKey: _rootKey,
-      builder: (context, state) => ProcessingScreen(args: state.extra as ApplyArgs),
+      builder: (context, state) => const ProcessingScreen(),
     ),
     GoRoute(
       path: Routes.batch,

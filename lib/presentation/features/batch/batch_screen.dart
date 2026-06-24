@@ -13,6 +13,10 @@ import '../../../domain/entities/audio_file_ref.dart';
 import '../../../domain/entities/batch_progress.dart';
 import '../../../domain/entities/background_profile.dart';
 import '../../../domain/entities/enums.dart';
+import '../../shared/cover_image_card.dart';
+import '../../shared/navigation/navigation_dialogs.dart';
+import '../../shared/navigation/navigation_guard.dart';
+import '../../shared/navigation/processing_status.dart';
 
 /// Batch mode — add up to 50 files, pick one profile, process them all
 /// sequentially (SRS §15).
@@ -29,6 +33,10 @@ class _BatchScreenState extends ConsumerState<BatchScreen> {
   bool _running = false;
   BatchProgress? _progress;
   StreamSubscription<BatchProgress>? _sub;
+
+  /// Optional cover-art image (thumbnail) embedded in every file of this batch.
+  /// Chosen here, alongside the backdrop, rather than baked into the backdrop.
+  String? _thumbnailPath;
 
   @override
   void dispose() {
@@ -61,12 +69,48 @@ class _BatchScreenState extends ConsumerState<BatchScreen> {
     }
   }
 
+  Future<void> _pickThumbnail() async {
+    final path = await ref.read(filePickServiceProvider).pickImagePath();
+    if (path != null) setState(() => _thumbnailPath = path);
+  }
+
+  /// Back-press policy. Manual batch runs screen-locally (not backgrounded), so
+  /// while running we offer only Cancel / Stay; otherwise warn before
+  /// discarding unsaved setup.
+  Future<bool> _confirmLeave() async {
+    if (_running) {
+      final action = await showProcessingRunningDialog(context, canBackground: false);
+      switch (action) {
+        case LeaveAction.cancel:
+          await _sub?.cancel();
+          return true;
+        case LeaveAction.background:
+        case LeaveAction.stay:
+          return false;
+      }
+    }
+    if (!mounted) return false;
+    return confirmLeaveSetup(
+      context,
+      title: 'Leave Batch Setup?',
+      message: 'You have unsaved batch configuration.',
+    );
+  }
+
   void _start(BackgroundProfile profile) {
+    // One active engine at a time — don't overlap with a backgrounded job.
+    if (anyEngineActive(ref)) {
+      showAlreadyRunningMessage(context);
+      return;
+    }
     setState(() {
       _running = true;
       _progress = null;
     });
-    final stream = ref.read(processBatchUseCaseProvider).call(List.of(_files), profile);
+    final stream = ref.read(processBatchUseCaseProvider).call(
+          List.of(_files),
+          profile.copyWith(coverImagePath: _thumbnailPath),
+        );
     _sub = stream.listen(
       (progress) => setState(() => _progress = progress),
       onDone: () => setState(() => _running = false),
@@ -78,8 +122,13 @@ class _BatchScreenState extends ConsumerState<BatchScreen> {
     final profilesAsync = ref.watch(profilesProvider);
     final profiles = profilesAsync.valueOrNull ?? const <BackgroundProfile>[];
 
-    return PopScope(
-      canPop: !_running,
+    return NavigationGuard(
+      debugLabel: 'batch',
+      canPop: !_running &&
+          _files.isEmpty &&
+          _profileId == null &&
+          _thumbnailPath == null,
+      onConfirmLeave: _confirmLeave,
       child: Scaffold(
         appBar: AppBar(title: const Text('Batch processing')),
         body: Padding(
@@ -145,6 +194,12 @@ class _BatchScreenState extends ConsumerState<BatchScreen> {
             for (final pr in profiles) DropdownMenuItem(value: pr.id, child: Text(pr.name)),
           ],
           onChanged: (id) => setState(() => _profileId = id),
+        ),
+        Spacing.md.verticalSpace,
+        CoverImageCard(
+          path: _thumbnailPath,
+          onPick: _pickThumbnail,
+          onClear: () => setState(() => _thumbnailPath = null),
         ),
         Spacing.md.verticalSpace,
         FilledButton.icon(

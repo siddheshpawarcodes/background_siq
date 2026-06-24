@@ -2,13 +2,12 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path/path.dart' as p;
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../../../core/constants/app_constants.dart';
 import '../../../core/di/usecase_providers.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../shared/audio_file_card.dart';
+import '../../shared/navigation/navigation_guard.dart';
 import 'profile_wizard_controller.dart';
 import 'steps/calibrate_step.dart';
 
@@ -53,32 +52,44 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
     final state = ref.watch(profileWizardControllerProvider(widget.profileId));
     final isNew = widget.profileId == null;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(isNew ? 'New Backdrop' : 'Edit Backdrop'),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(48),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(Spacing.md, 0, Spacing.md, Spacing.sm),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Step ${state.step + 1} of ${WizardStep.count} · ${_titles[state.step]}'),
-                Spacing.xs.verticalSpace,
-                LinearProgressIndicator(value: (state.step + 1) / WizardStep.count),
-              ],
+    return NavigationGuard(
+      // Block accidental exits while there are unsaved edits; the guard drives
+      // the actual pop (design §6). A successful Save pops imperatively, which
+      // bypasses the guard, so it is never intercepted.
+      debugLabel: 'profile-wizard',
+      canPop: !_ctrl.hasUnsavedChanges,
+      onConfirmLeave: () async {
+        final discard = await _confirmDiscard();
+        if (discard != true) return false;
+        await _ctrl.discardDraft();
+        return true;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(isNew ? 'New Backdrop' : 'Edit Backdrop'),
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(48),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(Spacing.md, 0, Spacing.md, Spacing.sm),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Step ${state.step + 1} of ${WizardStep.count} · ${_titles[state.step]}'),
+                  Spacing.xs.verticalSpace,
+                  LinearProgressIndicator(value: (state.step + 1) / WizardStep.count),
+                ],
+              ),
             ),
           ),
         ),
+        body: switch (state.step) {
+          WizardStep.info => _infoStep(),
+          WizardStep.music => _musicStep(state.draft.musicFilePath),
+          WizardStep.sample => _sampleStep(state.draft.calibrationVoiceSamplePath),
+          _ => CalibrateStep(profileId: widget.profileId),
+        },
+        bottomNavigationBar: _navBar(state),
       ),
-      body: switch (state.step) {
-        WizardStep.info => _infoStep(),
-        WizardStep.music =>
-          _musicStep(state.draft.musicFilePath, state.draft.coverImagePath),
-        WizardStep.sample => _sampleStep(state.draft.calibrationVoiceSamplePath),
-        _ => CalibrateStep(profileId: widget.profileId),
-      },
-      bottomNavigationBar: _navBar(state.step, state.draft.name.trim().isNotEmpty),
     );
   }
 
@@ -106,7 +117,7 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
         ],
       );
 
-  Widget _musicStep(String? path, String? coverPath) => Padding(
+  Widget _musicStep(String? path) => Padding(
         padding: const EdgeInsets.all(Spacing.md),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -114,7 +125,7 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
             AudioFileCard(
               icon: Icons.music_note,
               emptyTitle: 'No background music',
-              emptySubtitle: 'Tap to choose a track (optional)',
+              emptySubtitle: 'Tap to choose a track',
               path: path,
               onPick: () async {
                 final picked = await ref.read(filePickServiceProvider).pickAudioPath();
@@ -122,68 +133,15 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
               },
               onClear: () => _ctrl.setMusic(null),
             ),
-            Spacing.md.verticalSpace,
-            _coverCard(coverPath),
+            _validationMessage(
+              path: path,
+              missingMessage: 'Please select a background music track to continue.',
+              unavailableMessage:
+                  'The selected music file is no longer available. Choose another to continue.',
+            ),
           ],
         ),
       );
-
-  Widget _coverCard(String? path) {
-    final exists = path != null && File(path).existsSync();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Card(
-          child: ListTile(
-            leading: exists
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: Image.file(File(path),
-                        width: 40, height: 40, fit: BoxFit.cover),
-                  )
-                : const Icon(Icons.image_outlined),
-            title: Text(path == null ? 'No cover image (thumbnail)' : p.basename(path),
-                maxLines: 1, overflow: TextOverflow.ellipsis),
-            subtitle: Text(path == null
-                ? 'Tap to choose a JPG or PNG (optional)'
-                : (exists ? 'Tap to change' : 'File missing — tap to re-select')),
-            trailing: path == null
-                ? const Icon(Icons.folder_open)
-                : IconButton(
-                    icon: const Icon(Icons.clear),
-                    onPressed: () => _ctrl.setCover(null),
-                  ),
-            onTap: () async {
-              final picked = await ref.read(filePickServiceProvider).pickImagePath();
-              if (picked != null) _ctrl.setCover(picked);
-            },
-          ),
-        ),
-        if (path != null)
-          Padding(
-            padding: const EdgeInsets.only(top: Spacing.sm, left: Spacing.sm),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.info_outline,
-                    size: 16, color: Theme.of(context).colorScheme.outline),
-                Spacing.sm.horizontalSpace,
-                Expanded(
-                  child: Text(
-                    'The thumbnail is embedded only when exporting to '
-                    '${AppConstants.coverArtCapableLabel}. WAV and OGG files '
-                    "can't store a cover image, so it will be skipped for those.",
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.outline,
-                        ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-      ],
-    );
-  }
 
   Widget _sampleStep(String? path) => Padding(
         padding: const EdgeInsets.all(Spacing.md),
@@ -206,11 +164,43 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
               },
               onClear: () => _ctrl.setCalibrationSample(null),
             ),
+            _validationMessage(
+              path: path,
+              missingMessage: 'Please select a calibration voice sample to continue.',
+              unavailableMessage:
+                  'The selected sample is no longer available. Choose another to continue.',
+            ),
           ],
         ),
       );
 
-  Widget _navBar(int step, bool nameValid) {
+  /// Inline validation under a mandatory file step: prompts to pick a file when
+  /// none is set, or flags an error when the chosen file has gone missing.
+  Widget _validationMessage({
+    required String? path,
+    required String missingMessage,
+    required String unavailableMessage,
+  }) {
+    if (_fileReady(path)) return const SizedBox.shrink();
+    final message = path == null ? missingMessage : unavailableMessage;
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(top: Spacing.sm),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, size: 16, color: scheme.error),
+          Spacing.xs.horizontalSpace,
+          Expanded(
+            child: Text(message, style: TextStyle(color: scheme.error)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _navBar(WizardState state) {
+    final step = state.step;
     final isLast = step == WizardStep.count - 1;
     return SafeArea(
       child: Padding(
@@ -230,7 +220,7 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
               child: FilledButton(
                 onPressed: isLast
                     ? _save
-                    : (step == WizardStep.info && !nameValid ? null : _ctrl.next),
+                    : (_stepValid(state) ? _ctrl.next : null),
                 child: Text(isLast ? 'Save backdrop' : 'Next'),
               ),
             ),
@@ -239,6 +229,46 @@ class _ProfileWizardScreenState extends ConsumerState<ProfileWizardScreen> {
       ),
     );
   }
+
+  /// Whether the current step satisfies its requirements to advance. Music and
+  /// the calibration sample are mandatory and must point at a readable file
+  /// (design §1).
+  bool _stepValid(WizardState state) {
+    switch (state.step) {
+      case WizardStep.info:
+        return state.draft.name.trim().isNotEmpty;
+      case WizardStep.music:
+        return _fileReady(state.draft.musicFilePath);
+      case WizardStep.sample:
+        return _fileReady(state.draft.calibrationVoiceSamplePath);
+      default:
+        return true;
+    }
+  }
+
+  /// A non-null path that still resolves to an existing file on disk.
+  bool _fileReady(String? path) => path != null && File(path).existsSync();
+
+  Future<bool?> _confirmDiscard() => showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Discard Changes?'),
+          content: const Text(
+            'You have unsaved backdrop changes.\n'
+            'Do you want to leave this screen or continue editing?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Continue Editing'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Discard Changes'),
+            ),
+          ],
+        ),
+      );
 
   Future<void> _save() async {
     final result = await _ctrl.saveProfile();

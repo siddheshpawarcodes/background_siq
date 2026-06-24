@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
@@ -8,31 +6,28 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../core/di/repository_providers.dart';
 import '../../../core/di/usecase_providers.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../domain/entities/audio_file_ref.dart';
-import '../../../domain/entities/background_profile.dart';
 import '../../../domain/entities/enums.dart';
 import '../../../domain/entities/processing_job.dart';
-
-/// Arguments handed to the processing screen via the router (SRS §12).
-class ApplyArgs {
-  const ApplyArgs({required this.source, required this.profile});
-  final AudioFileRef source;
-  final BackgroundProfile profile;
-}
+import '../../shared/navigation/nav_log.dart';
+import '../../shared/navigation/navigation_dialogs.dart';
+import '../../shared/navigation/navigation_guard.dart';
+import 'single_apply_controller.dart';
 
 /// Processing screen — live stage list + percentage progress (SRS §11.2).
+///
+/// A thin *observer* of [SingleApplyController]: the run lives in the
+/// controller (backed by the foreground service), so leaving this screen lets
+/// it finish in the background instead of cancelling it.
 class ProcessingScreen extends ConsumerStatefulWidget {
-  const ProcessingScreen({super.key, required this.args});
-
-  final ApplyArgs args;
+  const ProcessingScreen({super.key});
 
   @override
   ConsumerState<ProcessingScreen> createState() => _ProcessingScreenState();
 }
 
 class _ProcessingScreenState extends ConsumerState<ProcessingScreen> {
-  StreamSubscription<ProcessingJob>? _sub;
-  ProcessingJob? _job;
+  /// Guards the one-shot auto-open of a successfully exported file.
+  bool _autoOpened = false;
 
   /// Visible pipeline stages, in order.
   static const _stages = [
@@ -46,25 +41,9 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen> {
     JobStage.exporting,
   ];
 
-  @override
-  void initState() {
-    super.initState();
-    _start();
-  }
-
-  void _start() {
-    final stream = ref
-        .read(applyProfileUseCaseProvider)
-        .call(widget.args.source, widget.args.profile);
-    _sub = stream.listen((job) {
-      setState(() => _job = job);
-      if (job.stage == JobStage.completed && job.outputPath != null) {
-        _maybeAutoOpen(job.outputPath!);
-      }
-    });
-  }
-
   Future<void> _maybeAutoOpen(String path) async {
+    if (_autoOpened) return;
+    _autoOpened = true;
     final settings = await ref.read(settingsRepositoryProvider).get();
     if (settings.autoOpenOutputFolder) await _open(path);
   }
@@ -78,41 +57,66 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen> {
     }
   }
 
-  /// Cancels the running native FFmpeg session and leaves the screen.
-  Future<void> _cancel() async {
-    final id = _job?.id;
-    await _sub?.cancel();
-    if (id != null) await ref.read(audioProcessorProvider).cancel(id);
+  /// Decides what happens on a back press while a run is active. Leaving in the
+  /// background keeps the controller + foreground service running.
+  Future<bool> _confirmLeave() async {
+    if (!ref.read(singleApplyControllerProvider).running) return true;
+    final action = await showProcessingRunningDialog(context, canBackground: true);
+    switch (action) {
+      case LeaveAction.background:
+        NavLog.event(NavEvent.processingScreenExited, 'single/background');
+        return true;
+      case LeaveAction.cancel:
+        await ref.read(singleApplyControllerProvider.notifier).cancel();
+        return true;
+      case LeaveAction.stay:
+        return false;
+    }
+  }
+
+  /// Cancel button on the in-progress view: stop the job and leave.
+  Future<void> _cancelAndPop() async {
+    await ref.read(singleApplyControllerProvider.notifier).cancel();
     if (mounted) Navigator.of(context).pop();
   }
 
-  @override
-  void dispose() {
-    _sub?.cancel();
-    super.dispose();
+  /// Done/Back on the result card: clear terminal state and leave.
+  void _done() {
+    ref.read(singleApplyControllerProvider.notifier).reset();
+    Navigator.of(context).pop();
   }
-
-  bool get _done => _job?.stage == JobStage.completed;
-  bool get _failed => _job?.stage == JobStage.failed;
 
   @override
   Widget build(BuildContext context) {
-    final job = _job;
-    return PopScope(
-      canPop: _done || _failed,
+    final state = ref.watch(singleApplyControllerProvider);
+    final job = state.job;
+    final done = state.isCompleted;
+    final failed = state.isFailed;
+
+    // Auto-open the export once, after the frame, if the user opted in.
+    if (done && job?.outputPath != null && !_autoOpened) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _maybeAutoOpen(job!.outputPath!);
+      });
+    }
+
+    return NavigationGuard(
+      debugLabel: 'single-processing',
+      canPop: !state.running,
+      onConfirmLeave: _confirmLeave,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Processing'),
-          automaticallyImplyLeading: _done || _failed,
+          automaticallyImplyLeading: !state.running,
         ),
         body: Padding(
           padding: const EdgeInsets.all(Spacing.lg),
-          child: _failed
-              ? _ResultCard.failure(message: job?.errorMessage ?? 'Processing failed.', onBack: _pop)
-              : _done
+          child: failed
+              ? _ResultCard.failure(message: job?.errorMessage ?? 'Processing failed.', onBack: _done)
+              : done
                   ? _ResultCard.success(
                       outputPath: job!.outputPath!,
-                      onDone: _pop,
+                      onDone: _done,
                       onOpen: () => _open(job.outputPath!),
                     )
                   : _progressView(job),
@@ -146,7 +150,7 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen> {
         ),
         Center(
           child: TextButton.icon(
-            onPressed: _cancel,
+            onPressed: _cancelAndPop,
             icon: const Icon(Icons.close),
             label: const Text('Cancel'),
           ),
@@ -154,8 +158,6 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen> {
       ],
     );
   }
-
-  void _pop() => Navigator.of(context).pop();
 }
 
 enum _StepState { pending, active, done }

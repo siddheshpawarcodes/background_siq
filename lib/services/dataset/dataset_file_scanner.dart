@@ -2,6 +2,38 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
+import '../../core/logging/app_logger.dart';
+
+/// A single tick from [DatasetFileScanner.scanProgressive].
+///
+/// While the recursive walk is in flight, [result] is null and the other fields
+/// describe live progress — how many audio files have been seen, how many
+/// matched a suffix, and the folder currently being walked — so the UI can show
+/// continuous feedback instead of appearing frozen during a long scan. Exactly
+/// one terminal tick carries a non-null [result].
+class DatasetScanProgress {
+  const DatasetScanProgress({
+    this.currentDirectory,
+    this.discovered = 0,
+    this.matched = 0,
+    this.result,
+  });
+
+  /// Basename of the folder being walked when this tick was emitted.
+  final String? currentDirectory;
+
+  /// Audio files seen so far (regardless of suffix).
+  final int discovered;
+
+  /// Files matching a configured suffix so far.
+  final int matched;
+
+  /// Non-null only on the final tick; the completed scan outcome.
+  final DatasetScanResult? result;
+
+  bool get isDone => result != null;
+}
+
 /// Outcome of a diagnostic scan ([DatasetFileScanner.scanDetailed]): the matched
 /// paths plus enough context to explain a zero-match result to the user.
 class DatasetScanResult {
@@ -86,46 +118,113 @@ class DatasetFileScanner {
   /// whether the root was readable, the matched paths, how many audio files
   /// exist regardless of suffix, and a few example names. Used to explain a
   /// zero-match run instead of failing silently.
+  ///
+  /// Implemented by draining [scanProgressive]; prefer that directly when live
+  /// progress is needed (e.g. to keep the UI responsive during a large walk).
   Future<DatasetScanResult> scanDetailed({
     required String rootFolder,
     required Iterable<String> suffixes,
     Set<String> extensions = defaultExtensions,
     int sampleLimit = 5,
   }) async {
-    final root = Directory(rootFolder);
-    if (!await root.exists()) return _unreadable;
+    DatasetScanResult? result;
+    await for (final tick in scanProgressive(
+      rootFolder: rootFolder,
+      suffixes: suffixes,
+      extensions: extensions,
+      sampleLimit: sampleLimit,
+    )) {
+      if (tick.result != null) result = tick.result;
+    }
+    return result ?? _unreadable;
+  }
 
+  /// Walks [rootFolder] recursively, emitting a [DatasetScanProgress] tick as it
+  /// goes — periodically while discovering files and once per directory entered
+  /// — then a final tick carrying the [DatasetScanResult]. The incremental ticks
+  /// let the caller surface live counts so a long scan never looks frozen, and
+  /// the per-directory log (`SCAN_DIRECTORY`) pinpoints exactly where a walk
+  /// stalls if it ever does.
+  ///
+  /// Matching and zero-match diagnostics are identical to [scanDetailed]; this
+  /// is the single source of truth both share.
+  Stream<DatasetScanProgress> scanProgressive({
+    required String rootFolder,
+    required Iterable<String> suffixes,
+    Set<String> extensions = defaultExtensions,
+    int sampleLimit = 5,
+    int emitEvery = 10,
+  }) async* {
     final suffixList = suffixes.where((s) => s.isNotEmpty).toList();
     final exts = extensions.map((e) => e.toLowerCase()).toSet();
+    AppLogger.i('SCAN_STARTED root=$rootFolder suffixes=$suffixList exts=$exts');
+
+    final root = Directory(rootFolder);
+    if (!await root.exists()) {
+      AppLogger.w(
+          'SCAN: root not readable (missing or no access): $rootFolder');
+      yield DatasetScanProgress(result: _unreadable);
+      return;
+    }
 
     final matched = <String>[];
     final samples = <String>[];
     var audioCount = 0;
+    var sinceEmit = 0;
 
     try {
       await for (final entity
           in root.list(recursive: true, followLinks: false)) {
+        if (entity is Directory) {
+          // Logging each directory makes the stall point obvious: the last
+          // SCAN_DIRECTORY line printed before a freeze is the culprit folder.
+          AppLogger.d('SCAN_DIRECTORY: ${entity.path}');
+          yield DatasetScanProgress(
+            currentDirectory: p.basename(entity.path),
+            discovered: audioCount,
+            matched: matched.length,
+          );
+          continue;
+        }
         if (entity is! File) continue;
         final name = p.basename(entity.path);
         if (!_hasAudioExtension(name, exts)) continue;
         audioCount++;
+        AppLogger.d('FILE_DISCOVERED: ${entity.path}');
         if (samples.length < sampleLimit) samples.add(name);
         if (suffixList.isNotEmpty && _matches(entity.path, suffixList, exts)) {
           matched.add(entity.path);
+          AppLogger.d('MATCH_FOUND: ${entity.path}');
+        }
+        if (++sinceEmit >= emitEvery) {
+          sinceEmit = 0;
+          yield DatasetScanProgress(
+            currentDirectory: p.basename(p.dirname(entity.path)),
+            discovered: audioCount,
+            matched: matched.length,
+          );
         }
       }
-    } on FileSystemException {
+    } on FileSystemException catch (e) {
       // The tree couldn't be fully read (e.g. permission). If we got nothing at
       // all, report the root as unreadable so the user gets the permission hint
       // rather than a misleading "no files found" message.
-      if (audioCount == 0 && matched.isEmpty) return _unreadable;
+      AppLogger.w('SCAN: stopped early on FileSystemException: $e');
+      if (audioCount == 0 && matched.isEmpty) {
+        yield DatasetScanProgress(result: _unreadable);
+        return;
+      }
     }
 
-    return DatasetScanResult(
-      rootReadable: true,
-      matchedPaths: matched,
-      audioFilesFound: audioCount,
-      sampleAudioNames: samples,
+    AppLogger.i(
+        'SCAN_COMPLETED discovered=$audioCount matched=${matched.length}');
+    yield DatasetScanProgress(
+      result: DatasetScanResult(
+        rootReadable: true,
+        matchedPaths: matched,
+        audioFilesFound: audioCount,
+        sampleAudioNames: samples,
+      ),
     );
   }
 

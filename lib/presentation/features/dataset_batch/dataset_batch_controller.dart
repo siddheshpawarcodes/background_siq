@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/di/usecase_providers.dart';
+import '../../../core/logging/app_logger.dart';
 import '../../../domain/entities/dataset_batch_config.dart';
 import '../../../domain/entities/dataset_batch_progress.dart';
 import '../../../domain/entities/suffix_profile.dart';
@@ -65,6 +66,16 @@ class DatasetBatchController extends Notifier<DatasetBatchState> {
   void setEntryProfile(int id, String profileId) => _updateEntry(
       id, (e) => e.copyWith(profileId: profileId));
 
+  /// Sets or clears the cover-art image (thumbnail) for [id]'s suffix row.
+  void setEntryCover(int id, String? coverImagePath) =>
+      _updateEntry(id, (e) => e.withCover(coverImagePath));
+
+  /// Opens the image picker and sets the chosen thumbnail on [id]'s row.
+  Future<void> pickEntryCover(int id) async {
+    final path = await ref.read(filePickServiceProvider).pickImagePath();
+    if (path != null) setEntryCover(id, path);
+  }
+
   void _updateEntry(int id, SuffixProfileEntry Function(SuffixProfileEntry) f) {
     state = state.copyWith(
       entries: [
@@ -78,16 +89,24 @@ class DatasetBatchController extends Notifier<DatasetBatchState> {
         rootFolder: state.rootFolder ?? '',
         suffixProfiles: [
           for (final e in state.entries)
-            SuffixProfile(suffix: e.suffix.trim(), profileId: e.profileId!),
+            SuffixProfile(
+              suffix: e.suffix.trim(),
+              profileId: e.profileId!,
+              coverImagePath: e.coverImagePath,
+            ),
         ],
       );
 
   /// Starts a fresh run over the whole dataset.
   Future<void> start() async {
+    AppLogger.i('START tapped (canStart=${state.canStart}).');
     if (!state.canStart) return;
     final config = _buildConfig();
+    AppLogger.i('Ensuring storage access…');
     await _ensureStorageAccess();
+    AppLogger.i('Starting foreground service…');
     await _startForegroundService();
+    AppLogger.i('Pre-flight done; launching run.');
     _run(config);
   }
 
@@ -157,6 +176,12 @@ class DatasetBatchController extends Notifier<DatasetBatchState> {
 
     _sub = stream.listen(
       (progress) {
+        AppLogger.d('STATE_UPDATED scanning=${progress.scanning} '
+            'overall=${progress.overall.toStringAsFixed(2)} '
+            'processed=${progress.processedFiles}/${progress.totalFiles} '
+            'ok=${progress.successfulFiles} fail=${progress.failedFiles} '
+            'file=${progress.currentFile ?? '-'} '
+            'stage=${progress.currentStage ?? '-'}');
         state = state.copyWith(
           progress: progress,
           elapsed: _stopwatch.elapsed,
@@ -164,11 +189,13 @@ class DatasetBatchController extends Notifier<DatasetBatchState> {
         _updateNotification(progress);
       },
       onDone: () {
+        AppLogger.i('RUN_DONE (stream closed normally).');
         _stopwatch.stop();
         state = state.copyWith(running: false, elapsed: _stopwatch.elapsed);
         unawaited(_stopForegroundService());
       },
-      onError: (_) {
+      onError: (Object error, StackTrace st) {
+        AppLogger.e('RUN_ERROR: $error', error: error, stackTrace: st);
         _stopwatch.stop();
         state = state.copyWith(running: false, elapsed: _stopwatch.elapsed);
         unawaited(_stopForegroundService());

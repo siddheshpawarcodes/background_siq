@@ -37,7 +37,10 @@ class _Fs implements FileSystemPort {
   @override
   Future<bool> exists(String path) async => true;
   @override
-  Future<String> previewPath(String e) async => '/tmp/p.$e';
+  Future<String> previewPath(String e, {String? token}) async => '/tmp/p.$e';
+
+  @override
+  Future<void> clearPreviews() async {}
   @override
   Future<Result<String>> resolveOutputPath(
           {required AudioFileRef source, String? preferredDir}) async =>

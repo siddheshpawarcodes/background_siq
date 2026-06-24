@@ -65,7 +65,10 @@ void main() {
     );
     expect(cmd.arguments, containsAllInOrder(['-stream_loop', '-1', '-i', 'music.mp3']));
     expect(cmd.filterComplex, contains('volume=0.20'));
-    expect(cmd.filterComplex, contains('amix=inputs=2:duration=first'));
+    // Must mix for the VOICE length, not the infinitely-looped music, or a
+    // full (un-trimmed) render never finishes — see FilterGraphBuilder.build.
+    expect(cmd.filterComplex, contains('amix=inputs=2:duration=shortest'));
+    expect(cmd.filterComplex, isNot(contains('duration=first')));
     expect(cmd.filterComplex, isNot(contains('sidechaincompress')));
   });
 
